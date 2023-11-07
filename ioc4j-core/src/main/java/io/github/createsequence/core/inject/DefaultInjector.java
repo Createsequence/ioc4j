@@ -1,6 +1,6 @@
 package io.github.createsequence.core.inject;
 
-import io.github.createsequence.core.container.BeanRegister;
+import io.github.createsequence.core.bean.BeanRegister;
 import lombok.RequiredArgsConstructor;
 
 /**

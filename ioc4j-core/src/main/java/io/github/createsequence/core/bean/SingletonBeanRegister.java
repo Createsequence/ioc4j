@@ -1,4 +1,4 @@
-package io.github.createsequence.core.container;
+package io.github.createsequence.core.bean;
 
 import io.github.createsequence.core.exception.Ioc4jException;
 

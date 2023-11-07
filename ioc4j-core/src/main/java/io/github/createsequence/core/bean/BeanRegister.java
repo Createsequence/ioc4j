@@ -1,4 +1,4 @@
-package io.github.createsequence.core.container;
+package io.github.createsequence.core.bean;
 
 import java.util.List;
 
@@ -16,14 +16,14 @@ public interface BeanRegister {
      * @return Bean
      */
     Object getBean(String beanName);
-
+    
     /**
-     * 获取Bean名称
+     * 是否包含指定Bean
      *
-     * @param beanType bean类型
-     * @return Bean名称
+     * @param beanName bean名称
+     * @return 是否
      */
-    List<String> getBeanNamesOfType(Class<?> beanType);
+    boolean containBean(String beanName);
 
     /**
      * 获取Bean

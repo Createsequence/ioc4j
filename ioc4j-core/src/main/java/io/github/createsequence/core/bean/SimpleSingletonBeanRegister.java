@@ -1,4 +1,4 @@
-package io.github.createsequence.core.container;
+package io.github.createsequence.core.bean;
 
 import io.github.createsequence.core.util.Asserts;
 
@@ -29,12 +29,22 @@ public class SimpleSingletonBeanRegister implements SingletonBeanRegister {
     }
 
     /**
+     * 是否包含指定Bean
+     *
+     * @param beanName bean名称
+     * @return 是否
+     */
+    @Override
+    public boolean containBean(String beanName) {
+        return singletonBeans.containsKey(beanName);
+    }
+
+    /**
      * 获取Bean名称
      *
      * @param beanType bean类型
      * @return Bean名称
      */
-    @Override
     public List<String> getBeanNamesOfType(Class<?> beanType) {
         return singletonBeans.entrySet().stream()
             .filter(e -> beanType.isAssignableFrom(e.getValue().getClass()))

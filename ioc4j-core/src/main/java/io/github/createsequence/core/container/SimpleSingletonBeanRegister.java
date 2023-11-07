@@ -61,7 +61,10 @@ public class SimpleSingletonBeanRegister implements SingletonBeanRegister {
      */
     @Override
     public <T> List<T> getBeansOfType(Class<T> beanType) {
-        return null;
+        return getBeanNamesOfType(beanType).stream()
+            .map(this::getBean)
+            .map(beanType::cast)
+            .toList();
     }
 
     /**

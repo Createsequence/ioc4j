@@ -35,7 +35,7 @@ public class GeneralBeanDefinition implements BeanDefinition {
     private Class<?> type;
 
     /**
-     * bean类型的全限定名
+     * bean类型的全限定名，当无法直接指定类对象时使用
      */
     @Nullable
     private String typeName;
@@ -61,7 +61,7 @@ public class GeneralBeanDefinition implements BeanDefinition {
     private List<InjectionPoint> injectionPoints = new ArrayList<>();
 
     /**
-     * 父级bean定义
+     * 父级bean定义，当需要直接指定父级bean定义时使用，优先于{@link #parentDefinitionName}属性
      */
     @Nullable
     private BeanDefinition parentBeanDefinition;

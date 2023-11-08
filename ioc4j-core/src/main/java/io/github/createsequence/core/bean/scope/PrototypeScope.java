@@ -1,4 +1,4 @@
-package io.github.createsequence.core.bean;
+package io.github.createsequence.core.bean.scope;
 
 import java.util.function.Supplier;
 

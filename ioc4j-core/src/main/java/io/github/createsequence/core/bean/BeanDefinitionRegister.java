@@ -1,7 +1,6 @@
 package io.github.createsequence.core.bean;
 
 import java.util.Collection;
-import java.util.List;
 
 /**
  * bean定义注册表
@@ -34,22 +33,9 @@ public interface BeanDefinitionRegister {
     BeanDefinition getBeanDefinition(String beanName);
 
     /**
-     * 获取所有指定类型的Bean定义
+     * 获取所有bean定义
      *
-     * @param type bean类型
      * @return bean定义
      */
-    Collection<BeanDefinition> getBeanDefinitionsOfType(Class<?> type);
-
-    /**
-     * 获取所有指定类型的Bean定义名称
-     *
-     * @param type 类型
-     * @return bean名称
-     */
-    default List<String> getBeanNamesOfType(Class<?> type) {
-        return getBeanDefinitionsOfType(type).stream()
-            .map(BeanDefinition::getName)
-            .toList();
-    }
+    Collection<BeanDefinition> getBeanDefinitions();
 }

@@ -7,7 +7,7 @@ import io.github.createsequence.core.exception.Ioc4jException;
  *
  * @author huangchengxing
  */
-public interface SingletonBeanRegister extends BeanRegister {
+public interface SingletonBeanRegister {
 
     /**
      * 注册单例Bean
@@ -17,4 +17,12 @@ public interface SingletonBeanRegister extends BeanRegister {
      * @throws Ioc4jException 如果beanName已存在，则抛出异常
      */
     void registerSingleton(String beanName, Object bean) throws Ioc4jException;
+
+    /**
+     * 是否包含指定单例Bean
+     *
+     * @param beanName bean名称
+     * @return 是否
+     */
+    boolean containSingleton(String beanName);
 }

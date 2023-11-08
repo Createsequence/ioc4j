@@ -18,14 +18,6 @@ public interface BeanRegister {
     Object getBean(String beanName);
     
     /**
-     * 是否包含指定Bean
-     *
-     * @param beanName bean名称
-     * @return 是否
-     */
-    boolean containBean(String beanName);
-
-    /**
      * 获取Bean
      *
      * @param beanType bean类型
@@ -37,16 +29,16 @@ public interface BeanRegister {
      * 获取Bean
      *
      * @param beanType bean类型
+     * @param name bean类型
      * @return Bean
      */
-    <T> List<T> getBeansOfType(Class<T> beanType);
+    <T> T getBean(Class<T> beanType, String name);
 
     /**
      * 获取Bean
      *
      * @param beanType bean类型
-     * @param name bean类型
      * @return Bean
      */
-    <T> T getBean(Class<T> beanType, String name);
+    <T> List<T> getBeansOfType(Class<T> beanType);
 }

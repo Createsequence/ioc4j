@@ -1,5 +1,6 @@
-package io.github.createsequence.core.bean;
+package io.github.createsequence.core.bean.scope;
 
+import io.github.createsequence.core.bean.SingletonBeanRegister;
 import lombok.RequiredArgsConstructor;
 
 import java.util.function.Supplier;
@@ -35,7 +36,7 @@ public class SingletonScope implements Scope {
     @Override
     public <T> T getBean(String beanName, Supplier<T> supplier) {
         T bean = null;
-        if (!singletonBeanRegister.containBean(beanName)) {
+        if (!singletonBeanRegister.containSingleton(beanName)) {
             bean = supplier.get();
             singletonBeanRegister.registerSingleton(beanName, bean);
         }

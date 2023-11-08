@@ -1,78 +1,63 @@
 package io.github.createsequence.core.bean;
 
+import io.github.createsequence.core.inject.Dependency;
 import io.github.createsequence.core.inject.InjectionPoint;
-import org.checkerframework.checker.nullness.qual.NonNull;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Bean定义，与一个java类对应，表示一个受容器管理的、其本身或子类可实例化、可被依赖注入并且也可用于依赖注入的对象。
+ * Bean定义，与一个java类对应，表示一个被管理的、其子类或本身可实例化，并且可被依赖注入或用于依赖注入的对象
  *
  * @author huangchengxing
  */
-public interface BeanDefinition {
+@Accessors(chain = true)
+@Setter
+@Getter
+public class BeanDefinition {
 
     /**
-     * 获取Bean名称
-     *
-     * @return Bean名称
+     * bean名称
      */
-    String getName();
+    private String beanName;
 
     /**
-     * 获取Bean类型
-     *
-     * @return Bean类型
+     * bean类型
      */
-    Class<?> getType();
+    private Class<?> beanType;
 
     /**
-     * 获取Bean的作用域名称
-     *
-     * @return 作用域名称
-     * @see Scope#getName()
+     * bean类型的全限定名，当无法直接指定类对象时使用
      */
-    String getScope();
+    private String beanTypeName;
 
     /**
-     * 该定义是否代表一个可实例化的bean，如果不是则可能为接口或抽象类
-     *
-     * @return 是否
+     * bean作用域
      */
-    boolean isAbstract();
+    private String scope;
 
     /**
-     * 是否为优先Bean，若为{@code true}，
-     * 则若存在多个相同类型的bean，则优先返回当前bean
-     *
-     * @return 是否
+     * 是否优先
      */
-    boolean isPrimary();
+    private boolean primary = false;
 
     /**
-     * <p>获取实例创建工厂。<br/>
-     * 若不为空，且{@link #isAbstract()}为{@code true}，
-     * 则在使用构造器之前，优先尝试通过该工厂创建
-     *
-     * @return 工厂方法
+     * 用于通过工厂方法或构造器对Bean实例化时所需的依赖项
+     */
+    private List<Dependency> instantiationDependencies;
+
+    /**
+     * 依赖注入点
+     */
+    private List<InjectionPoint> injectionPoints = new ArrayList<>();
+
+    /**
+     * 父级bean定义名称
      */
     @Nullable
-    BeanInstanceFactory getBeanInstanceFactory();
-
-    /**
-     * 获取实例的依赖注入点
-     *
-     * @return 依赖注入点
-     */
-    @NonNull
-    List<InjectionPoint> getInjectionPoints();
-
-    /**
-     * 若当前类有父类或父接口，则获取父类或父接口对应的bean定义名称
-     *
-     * @return 上级bean定义名称
-     */
-    @Nullable
-    String getParentDefinitionName();
+    private String parentDefinitionName;
 }

@@ -1,6 +1,6 @@
 package io.github.createsequence.core.inject;
 
-import io.github.createsequence.core.bean.BeanRegister;
+import io.github.createsequence.core.bean.BeanManager;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class DefaultInjector implements Injector {
 
-    private final BeanRegister beanRegister;
+    private final BeanManager beanManager;
 
     /**
      * 对目标对象进行依赖注入

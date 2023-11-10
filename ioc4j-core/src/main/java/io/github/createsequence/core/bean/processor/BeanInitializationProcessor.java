@@ -1,4 +1,4 @@
-package io.github.createsequence.core.bean.lifecycle;
+package io.github.createsequence.core.bean.processor;
 
 import io.github.createsequence.core.bean.BeanDefinition;
 import org.checkerframework.checker.nullness.qual.Nullable;

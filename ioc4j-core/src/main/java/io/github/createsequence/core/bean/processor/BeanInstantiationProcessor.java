@@ -1,13 +1,13 @@
-package io.github.createsequence.core.bean.lifecycle;
+package io.github.createsequence.core.bean.processor;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * Bean销毁阶段处理器
+ * Bean实例化阶段处理器
  *
  * @author huangchengxing
  */
-public interface BeanDestructionProcessor extends LifecycleProcessor {
+public interface BeanInstantiationProcessor extends LifecycleProcessor {
 
     /**
      * Bean实例化前回调
@@ -17,7 +17,7 @@ public interface BeanDestructionProcessor extends LifecycleProcessor {
      * @return bean对象，若不为{@code null}则直接跳过实例化，而直接使用返回的实例
      */
     @Nullable
-    default Object beforeBeanDestruction(String beanName, Object bean) {
+    default Object beforeBeanInitialization(String beanName, Object bean) {
         return null;
     }
 
@@ -29,7 +29,7 @@ public interface BeanDestructionProcessor extends LifecycleProcessor {
      * @return bean对象，若不为{@code null}则直接跳过实例化，而直接使用返回的实例
      */
     @Nullable
-    default Object afterBeanDestruction(String beanName, Object bean) {
+    default Object afterBeanInitialization(String beanName, Object bean) {
         return bean;
     }
 }

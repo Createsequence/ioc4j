@@ -11,7 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Bean定义，与一个java类对应，表示一个被管理的、其子类或本身可实例化，并且可被依赖注入或用于依赖注入的对象
+ * <p>Bean定义，表示一个其本身或子类可实例化的java类，
+ * 通过该java类创建的bean会被容器管理，并在后续进行或用于依赖注入。
  *
  * @author huangchengxing
  */

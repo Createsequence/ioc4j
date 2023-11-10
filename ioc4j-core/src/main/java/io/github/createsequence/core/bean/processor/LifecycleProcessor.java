@@ -1,4 +1,4 @@
-package io.github.createsequence.core.bean.lifecycle;
+package io.github.createsequence.core.bean.processor;
 
 /**
  * 标识性接口，用于表示全局级别的Bean声明周期处理器

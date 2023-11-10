@@ -37,5 +37,5 @@ public interface BeanDefinitionRegister {
      *
      * @return bean定义
      */
-    Collection<BeanDefinition> getBeanDefinitions();
+    Collection<BeanDefinition> getAllBeanDefinitions();
 }

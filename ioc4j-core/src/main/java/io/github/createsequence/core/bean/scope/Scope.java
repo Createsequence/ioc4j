@@ -9,23 +9,23 @@ import java.util.function.Supplier;
  */
 public interface Scope {
 
-    String PROTOTYPE = "prototype";
+    /**
+     * 单例
+     */
     String SINGLETON = "singleton";
 
     /**
-     * 获取作用域名称
-     *
-     * @return 名称
+     * 多例
      */
-    String getName();
+    String PROTOTYPE = "prototype";
 
     /**
-     * 获取Bean
+     * 获取Bean的名称
      *
-     * @param beanName bean名称
-     * @param supplier bean提供者
-     * @param <T> bean类型
-     * @return Bean实例
+     * @param name bean的名称
+     * @param supplier bean的名称
+     * @param <T> bean的类型
+     * @return bean实例
      */
-    <T> T getBean(String beanName, Supplier<T> supplier);
+    <T> T get(String name, Supplier<T> supplier);
 }

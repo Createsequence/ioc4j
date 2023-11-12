@@ -1,45 +1,36 @@
 package io.github.createsequence.core.bean.scope;
 
-import io.github.createsequence.core.bean.SingletonBeanRegister;
+import io.github.createsequence.core.context.SingletonRegister;
 import lombok.RequiredArgsConstructor;
 
 import java.util.function.Supplier;
 
 /**
- * 单例作用域，固定关联一个{@link SingletonBeanRegister}，
- * 当创建Bean后将会注册到该注册表中，此后再次获取时将总是获得已注册的Bean实例。
+ * 单例，每次获取bean时都会返回同一个实例。
  *
  * @author huangchengxing
+ * @see SingletonRegister
  */
 @RequiredArgsConstructor
 public class SingletonScope implements Scope {
 
-    private final SingletonBeanRegister singletonBeanRegister;
+    private final SingletonRegister singletonRegister;
 
     /**
-     * 获取作用域名称
+     * 获取Bean的名称
      *
-     * @return 名称
+     * @param name bean的名称
+     * @param supplier bean的名称
+     * @return bean实例
      */
+    @SuppressWarnings("unchecked")
     @Override
-    public String getName() {
-        return SINGLETON;
-    }
-
-    /**
-     * 获取Bean
-     *
-     * @param beanName bean名称
-     * @param supplier bean提供者
-     * @return Bean实例
-     */
-    @Override
-    public <T> T getBean(String beanName, Supplier<T> supplier) {
-        T bean = null;
-        if (!singletonBeanRegister.containSingleton(beanName)) {
-            bean = supplier.get();
-            singletonBeanRegister.registerSingleton(beanName, bean);
+    public <T> T get(String name, Supplier<T> supplier) {
+        Object singleton = singletonRegister.getSingleton(name);
+        if (singleton == null) {
+            singleton = supplier.get();
+            singletonRegister.registerSingleton(name, singleton);
         }
-        return bean;
+        return (T) singleton;
     }
 }

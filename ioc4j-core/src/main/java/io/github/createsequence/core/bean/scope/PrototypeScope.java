@@ -3,31 +3,21 @@ package io.github.createsequence.core.bean.scope;
 import java.util.function.Supplier;
 
 /**
- * 多例作用域，在该作用域中，总是创建一个新的Bean
+ * 多例，每次获取bean时都会创建一个新的实例。
  *
  * @author huangchengxing
  */
 public class PrototypeScope implements Scope {
 
     /**
-     * 获取作用域名称
+     * 获取Bean的名称
      *
-     * @return 名称
+     * @param name     bean的名称
+     * @param supplier bean的名称
+     * @return bean实例
      */
     @Override
-    public String getName() {
-        return PROTOTYPE;
-    }
-
-    /**
-     * 获取Bean
-     *
-     * @param beanName bean名称
-     * @param supplier bean提供者
-     * @return Bean实例
-     */
-    @Override
-    public <T> T getBean(String beanName, Supplier<T> supplier) {
+    public <T> T get(String name, Supplier<T> supplier) {
         return supplier.get();
     }
 }

@@ -3,7 +3,9 @@ package io.github.createsequence.core.util;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
+import java.lang.reflect.Array;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Objects;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
@@ -210,5 +212,29 @@ public class ArrayUtils {
             }
         }
         return true;
+    }
+
+    /**
+     * 创建一个指定类型和长度的数组
+     *
+     * @param componentType 数组元素类型
+     * @param length 数组长度
+     * @return 数组
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> T[] newInstance(Class<T> componentType, int length) {
+        return (T[]) Array.newInstance(componentType, length);
+    }
+
+    /**
+     * 将集合转为数组
+     *
+     * @param coll 集合
+     * @param componentType 数组元素类型
+     * @return 数组
+     */
+    public static <T> T[] toArray(Collection<T> coll, Class<T> componentType) {
+        return Objects.isNull(coll) ?
+            newInstance(componentType, 0) : coll.toArray(len -> newInstance(componentType, len));
     }
 }

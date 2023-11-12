@@ -403,6 +403,17 @@ public class ReflectUtils {
      * @param consumer operation for each type
      */
     public static void traverseTypeHierarchy(Class<?> beanType, Consumer<Class<?>> consumer) {
+        traverseTypeHierarchy(beanType, true, consumer);
+    }
+
+    /**
+     * Traverse type hierarchy.
+     *
+     * @param beanType bean type
+     * @param includeRoot whether include root type
+     * @param consumer operation for each type
+     */
+    public static void traverseTypeHierarchy(Class<?> beanType, boolean includeRoot, Consumer<Class<?>> consumer) {
         Set<Class<?>> accessed = new HashSet<>();
         Deque<Class<?>> typeQueue = new LinkedList<>();
         typeQueue.add(beanType);
@@ -410,7 +421,9 @@ public class ReflectUtils {
             Class<?> type = typeQueue.removeFirst();
             accessed.add(type);
             // do something for current type
-            consumer.accept(type);
+            if (includeRoot || type != beanType) {
+                consumer.accept(type);
+            }
             // then find superclass and interfaces
             Set<Class<?>> declaredSuperClassWithInterface = getDeclaredSuperClassWithInterface(type);
             declaredSuperClassWithInterface.remove(Object.class);

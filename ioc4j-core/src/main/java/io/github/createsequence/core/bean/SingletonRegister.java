@@ -1,4 +1,4 @@
-package io.github.createsequence.core.context;
+package io.github.createsequence.core.bean;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;

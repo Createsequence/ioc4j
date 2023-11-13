@@ -1,6 +1,7 @@
 package io.github.createsequence.core.bean.metadata;
 
 import io.github.createsequence.core.support.HierarchicalAnnotatedElement;
+import io.github.createsequence.core.util.ClassUtils;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
 import java.lang.reflect.Method;
@@ -83,13 +84,19 @@ public interface MethodMetadata extends HierarchicalAnnotatedElement<Method, Met
         Class<?>[] childParameterTypes = childMethod.getParameterTypes();
         Class<?>[] parentParameterTypes = parentMethod.getParameterTypes();
         for (int i = 0; i < childParameterTypes.length; i++) {
-            if (!parentParameterTypes[i].isAssignableFrom(childParameterTypes[i])) {
+            if (!ClassUtils.isAssignable(parentParameterTypes[i], childParameterTypes[i])) {
                 return false;
             }
         }
         return true;
     }
 
+    /**
+     * 获取方法声明类的父类或父接口中，被当前方法重写的原方法
+     *
+     * @return 被重写方法组成的流
+     * @see #isOverrideFrom
+     */
     private Stream<MethodMetadata> getOverwrittenMethods() {
         return getDeclaringClassMetadata()
             .stream()

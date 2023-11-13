@@ -1,6 +1,6 @@
 package io.github.createsequence.core.bean.scope;
 
-import io.github.createsequence.core.context.SingletonRegister;
+import io.github.createsequence.core.bean.SingletonRegister;
 import lombok.RequiredArgsConstructor;
 
 import java.util.function.Supplier;

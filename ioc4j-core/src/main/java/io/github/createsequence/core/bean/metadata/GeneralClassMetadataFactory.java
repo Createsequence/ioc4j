@@ -90,7 +90,7 @@ public class GeneralClassMetadataFactory implements ClassMetadataFactory {
      * @return 属性元数据
      */
     protected FieldMetadata createFieldMetadata(ClassMetadataImpl metadata, Field field) {
-        return new FieldMetadataImpl(field);
+        return new FieldMetadataImpl(field, metadata);
     }
 
     /**
@@ -175,5 +175,6 @@ public class GeneralClassMetadataFactory implements ClassMetadataFactory {
     @RequiredArgsConstructor
     protected static class FieldMetadataImpl implements FieldMetadata {
         private final Field source;
+        private final ClassMetadata declaringClassMetadata;
     }
 }

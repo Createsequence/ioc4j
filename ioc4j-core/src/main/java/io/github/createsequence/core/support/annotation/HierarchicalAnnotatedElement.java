@@ -1,7 +1,8 @@
-package io.github.createsequence.core.support;
+package io.github.createsequence.core.support.annotation;
 
 import io.github.createsequence.core.util.AnnotationUtils;
 import io.github.createsequence.core.util.ArrayUtils;
+import io.github.createsequence.core.util.Streamable;
 import lombok.RequiredArgsConstructor;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -20,7 +21,6 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 /**
  * <p>表示一个具备层级结构的{@link AnnotatedElement}，比如类或方法。<br/>
@@ -35,7 +35,7 @@ import java.util.stream.StreamSupport;
  * @param <E> 元素类型
  * @param <I> 实现类类型
  */
-public interface HierarchicalAnnotatedElement<E extends AnnotatedElement, I extends HierarchicalAnnotatedElement<E, I>> extends AnnotatedElement, Iterable<I> {
+public interface HierarchicalAnnotatedElement<E extends AnnotatedElement, I extends HierarchicalAnnotatedElement<E, I>> extends AnnotatedElement, Streamable<I> {
 
     /**
      * 获取元素
@@ -144,15 +144,6 @@ public interface HierarchicalAnnotatedElement<E extends AnnotatedElement, I exte
     @Override
     default Iterator<I> iterator() {
         return new HierarchicalAnnotatedElementIterator<>((I)this);
-    }
-
-    /**
-     * 获取包括当前元素在内，层级结构中的所有元素构成的流
-     *
-     * @return 流
-     */
-    default Stream<I> stream() {
-        return StreamSupport.stream(spliterator(), false);
     }
 
     /**

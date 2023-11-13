@@ -1,6 +1,9 @@
 package io.github.createsequence.core.support;
 
+import io.github.createsequence.core.support.annotation.GeneralHierarchicalAnnotatedElement;
+import io.github.createsequence.core.support.annotation.HierarchicalAnnotatedElement;
 import io.github.createsequence.core.util.ClassUtils;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.lang.annotation.Annotation;
@@ -30,6 +33,7 @@ public class GeneralHierarchicalAnnotatedElementTest {
             .filter(a -> !ClassUtils.isJdkClass(a.annotationType()))
             .toList();
         System.out.println(annotations);
+        Assert.assertEquals(8, annotations.size());
     }
 
     @Annotation2("anno1")

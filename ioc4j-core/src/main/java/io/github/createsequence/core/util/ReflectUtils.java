@@ -127,7 +127,7 @@ public class ReflectUtils {
         if (parameterCount == args.length) {
             return args;
         }
-        // if the number of parameters is not equal, resolve actual arguments
+        // if the number of parameters is not equal, getResolvedAnnotation actual arguments
         Parameter[] parameters = method.getParameters();
         Object[] actualArguments = new Object[parameterCount];
         int newLen = Math.min(parameters.length, args.length);

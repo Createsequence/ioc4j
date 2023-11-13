@@ -1,4 +1,4 @@
-package io.github.createsequence.core.support;
+package io.github.createsequence.core.support.annotation;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

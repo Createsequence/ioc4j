@@ -1,6 +1,6 @@
 package io.github.createsequence.core.bean.metadata;
 
-import io.github.createsequence.core.support.HierarchicalAnnotatedElement;
+import io.github.createsequence.core.support.annotation.HierarchicalAnnotatedElement;
 import io.github.createsequence.core.util.ClassUtils;
 import org.checkerframework.checker.nullness.qual.NonNull;
 

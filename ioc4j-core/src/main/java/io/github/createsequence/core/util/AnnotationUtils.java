@@ -1,8 +1,12 @@
 package io.github.createsequence.core.util;
 
+import io.github.createsequence.core.support.annotation.ResolvedAnnotation;
+import io.github.createsequence.core.support.annotation.ResolvedAnnotations;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.annotation.Annotation;
 import java.lang.annotation.Repeatable;
@@ -10,6 +14,7 @@ import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +32,78 @@ import java.util.stream.Stream;
 public class AnnotationUtils {
 
     private static final String VALUE = "value";
+
+    /**
+     * 当前注解是否包含指定类型的元注解
+     *
+     * @param annotation 注解
+     * @param metaAnnotationType 元注解
+     * @return 是否
+     */
+    public static boolean hasMetaAnnotation(Annotation annotation, Class<? extends Annotation> metaAnnotationType) {
+        return ResolvedAnnotations.from(annotation, false)
+            .get(metaAnnotationType)
+            .isPresent();
+    }
+
+    /**
+     * 将一批注解合成为指定类型的注解
+     *
+     * @param annotation 注解对象
+     * @param annotationType 注解类型
+     * @param metaAnnotations 待合成的元注解，每种类型的注解最多只能有一个
+     * @return 合成的注解，若输入的注解中没有指定类型的注解，则返回{@code null}
+     */
+    @Nullable
+    public static <A extends Annotation> A getResolvedAnnotation(@NonNull Annotation annotation, @NonNull Class<A> annotationType, Annotation... metaAnnotations) {
+        return ResolvedAnnotations.of(annotation, metaAnnotations)
+            .synthesis(annotationType)
+            .orElse(null);
+    }
+
+    /**
+     * 将{@code annotation}及其层级结构中的元注解合成为指定类型的注解
+     *
+     * @param annotation 注解对象
+     * @param annotationType 注解类型
+     * @return 合成的注解，若层级结构中没有指定类型的注解，则返回{@code null}
+     */
+    @Nullable
+    public static <A extends Annotation> A getResolvedAnnotation(@NonNull Annotation annotation, @NonNull Class<A> annotationType) {
+        return ResolvedAnnotations.from(annotation)
+            .synthesis(annotationType)
+            .orElse(null);
+    }
+
+    /**
+     * 获取合成注解，合成后的注解支持{@link io.github.createsequence.core.support.annotation.AliasFor}注解
+     *
+     * @param annotation 注解
+     * @return 合成的注解
+     */
+    public static <A extends Annotation> A getResolvedAnnotation(@NonNull Annotation annotation) {
+        return ResolvedAnnotation.create(annotation, true).synthesis();
+    }
+
+    /**
+     * 将{@code annotation}及其层级结构中的元注解合成为指定类型的注解
+     *
+     * @param annotation 注解对象
+     * @param annotationType 注解类型
+     * @return 合成的注解，若层级结构中没有指定类型的注解，则返回{@code null}
+     */
+    @Nullable
+    public static <A extends Annotation> List<A> getRepeatableResolvedAnnotations(Annotation annotation, Class<A> annotationType) {
+        List<A> results = new ArrayList<>();
+        ResolvedAnnotations ras = ResolvedAnnotations.from(annotation);
+        ras.synthesis(annotationType).ifPresent(results::add);
+        determineRepeatableContainerType(annotationType)
+            .flatMap(ras::synthesis)
+            .map(container -> getAnnotationFromRepeatableContainer(annotationType, container))
+            .map(Arrays::asList)
+            .ifPresent(results::addAll);
+        return results;
+    }
 
     /**
      * 基于属性值构建一个注解对象
@@ -114,9 +191,7 @@ public class AnnotationUtils {
      */
     @SneakyThrows
     private static <A> A[] getRepeatableAnnotationFromContainer(AnnotatedElement element, Class<A> annotationType) {
-        Annotation container = Optional.ofNullable(annotationType)
-            .map(t -> t.getDeclaredAnnotation(Repeatable.class))
-            .map(Repeatable::value)
+        Annotation container = determineRepeatableContainerType(annotationType)
             .map(element::getDeclaredAnnotation)
             .orElse(null);
         if (Objects.isNull(container)) {
@@ -125,8 +200,15 @@ public class AnnotationUtils {
         return getAnnotationFromRepeatableContainer(annotationType, container);
     }
 
+    private static <A> Optional<Class<? extends Annotation>> determineRepeatableContainerType(Class<A> annotationType) {
+        return Optional.ofNullable(annotationType)
+            .map(t -> t.getDeclaredAnnotation(Repeatable.class))
+            .map(Repeatable::value);
+    }
+
     @SuppressWarnings("unchecked")
-    private static <A> A[] getAnnotationFromRepeatableContainer(Class<A> annotationType, Annotation container) throws Throwable {
+    @SneakyThrows
+    private static <A> A[] getAnnotationFromRepeatableContainer(Class<A> annotationType, Annotation container) {
         if (SynthesizedAnnotationInvocationHandler.isSynthesized(container)) {
             return (A[])((SynthesizedAnnotationInvocationHandler)Proxy.getInvocationHandler(container)).getMemberValues().get(VALUE);
         }

@@ -23,40 +23,40 @@ import java.lang.annotation.Target;
 import java.lang.reflect.Method;
 
 /**
- * test for {@link AttributeResolvableAnnotation}
+ * test for {@link ResolvedAnnotation}
  *
  * @author huangchengxing
  */
-public class AttributeResolvableAnnotationTest {
+public class ResolvedAnnotationTest {
 
 	@Test
 	public void testEquals() {
 		final Annotation1 annotation = Foo.class.getAnnotation(Annotation1.class);
-		final AttributeResolvableAnnotation mapping = AttributeResolvableAnnotation.create(annotation, false);
+		final ResolvedAnnotation mapping = ResolvedAnnotation.create(annotation, false);
 		Assert.assertNotEquals(null, mapping);
-		Assert.assertEquals(mapping, AttributeResolvableAnnotation.create(annotation, false));
-		Assert.assertNotEquals(mapping, AttributeResolvableAnnotation.create(annotation, true));
+		Assert.assertEquals(mapping, ResolvedAnnotation.create(annotation, false));
+		Assert.assertNotEquals(mapping, ResolvedAnnotation.create(annotation, true));
 
 		// Annotation3没有需要解析的属性，因此即使在构造函数指定false也一样
 		final Annotation3 annotation3 = Foo.class.getAnnotation(Annotation3.class);
 		Assert.assertEquals(
-			AttributeResolvableAnnotation.create(annotation3, false),
-			AttributeResolvableAnnotation.create(annotation3, true)
+			ResolvedAnnotation.create(annotation3, false),
+			ResolvedAnnotation.create(annotation3, true)
 		);
 	}
 
 	@Test
 	public void testHashCode() {
 		final Annotation1 annotation = Foo.class.getAnnotation(Annotation1.class);
-		final int hashCode = AttributeResolvableAnnotation.create(annotation, false).hashCode();
-		Assert.assertEquals(hashCode, AttributeResolvableAnnotation.create(annotation, false).hashCode());
-		Assert.assertNotEquals(hashCode, AttributeResolvableAnnotation.create(annotation, true).hashCode());
+		final int hashCode = ResolvedAnnotation.create(annotation, false).hashCode();
+		Assert.assertEquals(hashCode, ResolvedAnnotation.create(annotation, false).hashCode());
+		Assert.assertNotEquals(hashCode, ResolvedAnnotation.create(annotation, true).hashCode());
 
 		// Annotation3没有需要解析的属性，因此即使在构造函数指定false也一样
 		final Annotation3 annotation3 = Foo.class.getAnnotation(Annotation3.class);
 		Assert.assertEquals(
-			AttributeResolvableAnnotation.create(annotation3, false).hashCode(),
-			AttributeResolvableAnnotation.create(annotation3, true).hashCode()
+			ResolvedAnnotation.create(annotation3, false).hashCode(),
+			ResolvedAnnotation.create(annotation3, true).hashCode()
 		);
 	}
 
@@ -64,48 +64,48 @@ public class AttributeResolvableAnnotationTest {
 	@Test
 	public void testCreate() {
 		final Annotation3 annotation3 = Foo.class.getAnnotation(Annotation3.class);
-		final AttributeResolvableAnnotation mapping3 = AttributeResolvableAnnotation.create(annotation3, false);
+		final ResolvedAnnotation mapping3 = ResolvedAnnotation.create(annotation3, false);
 		Assert.assertNotNull(mapping3);
 
 		final Annotation2 annotation2 = Foo.class.getAnnotation(Annotation2.class);
-		final AttributeResolvableAnnotation mapping2 = AttributeResolvableAnnotation.create(mapping3, annotation2, false);
+		final ResolvedAnnotation mapping2 = ResolvedAnnotation.create(mapping3, annotation2, false);
 		Assert.assertNotNull(mapping2);
 
 		final Annotation1 annotation1 = Foo.class.getAnnotation(Annotation1.class);
-		final AttributeResolvableAnnotation mapping1 = AttributeResolvableAnnotation.create(mapping2, annotation1, false);
+		final ResolvedAnnotation mapping1 = ResolvedAnnotation.create(mapping2, annotation1, false);
 		Assert.assertNotNull(mapping1);
 	}
 
 	@Test
 	public void testIsRoot() {
 		final Annotation3 annotation3 = Foo.class.getAnnotation(Annotation3.class);
-		final AttributeResolvableAnnotation mapping3 = AttributeResolvableAnnotation.create(annotation3, false);
+		final ResolvedAnnotation mapping3 = ResolvedAnnotation.create(annotation3, false);
 		Assert.assertTrue(mapping3.isRoot());
 
 		final Annotation2 annotation2 = Foo.class.getAnnotation(Annotation2.class);
-		final AttributeResolvableAnnotation mapping2 = AttributeResolvableAnnotation.create(mapping3, annotation2, false);
+		final ResolvedAnnotation mapping2 = ResolvedAnnotation.create(mapping3, annotation2, false);
 		Assert.assertFalse(mapping2.isRoot());
 	}
 
 	@Test
 	public void testGetRoot() {
 		final Annotation3 annotation3 = Foo.class.getAnnotation(Annotation3.class);
-		final AttributeResolvableAnnotation mapping3 = AttributeResolvableAnnotation.create(annotation3, false);
+		final ResolvedAnnotation mapping3 = ResolvedAnnotation.create(annotation3, false);
 		Assert.assertSame(mapping3, mapping3.getRoot());
 
 		final Annotation2 annotation2 = Foo.class.getAnnotation(Annotation2.class);
-		final AttributeResolvableAnnotation mapping2 = AttributeResolvableAnnotation.create(mapping3, annotation2, false);
+		final ResolvedAnnotation mapping2 = ResolvedAnnotation.create(mapping3, annotation2, false);
 		Assert.assertSame(mapping3, mapping2.getRoot());
 
 		final Annotation1 annotation1 = Foo.class.getAnnotation(Annotation1.class);
-		final AttributeResolvableAnnotation mapping1 = AttributeResolvableAnnotation.create(mapping2, annotation1, false);
+		final ResolvedAnnotation mapping1 = ResolvedAnnotation.create(mapping2, annotation1, false);
 		Assert.assertSame(mapping3, mapping1.getRoot());
 	}
 
 	@Test
 	public void testGetAnnotation() {
 		final Annotation1 annotation = Foo.class.getAnnotation(Annotation1.class);
-		final AttributeResolvableAnnotation mapping = AttributeResolvableAnnotation.create(annotation, false);
+		final ResolvedAnnotation mapping = ResolvedAnnotation.create(annotation, false);
 		Assert.assertSame(annotation, mapping.getAnnotation());
 	}
 
@@ -113,7 +113,7 @@ public class AttributeResolvableAnnotationTest {
 	@Test
 	public void testGetAttributes() {
 		final Annotation1 annotation = Foo.class.getAnnotation(Annotation1.class);
-		final AttributeResolvableAnnotation mapping = AttributeResolvableAnnotation.create(annotation, false);
+		final ResolvedAnnotation mapping = ResolvedAnnotation.create(annotation, false);
 		for (int i = 0; i < mapping.getAttributes().length; i++) {
 			final Method method = mapping.getAttributes()[i];
 			Assert.assertEquals(Annotation1.class.getDeclaredMethod(method.getName()), method);
@@ -123,7 +123,7 @@ public class AttributeResolvableAnnotationTest {
 	@Test
 	public void testHasAttribute() {
 		final Annotation1 annotation = Foo.class.getAnnotation(Annotation1.class);
-		final AttributeResolvableAnnotation mapping = AttributeResolvableAnnotation.create(annotation, false);
+		final ResolvedAnnotation mapping = ResolvedAnnotation.create(annotation, false);
 
 		Assert.assertTrue(mapping.hasAttribute("value", String.class));
 		Assert.assertFalse(mapping.hasAttribute("value", Integer.class));
@@ -136,7 +136,7 @@ public class AttributeResolvableAnnotationTest {
 	@Test
 	public void testAnnotationType() {
 		final Annotation1 annotation = Foo.class.getAnnotation(Annotation1.class);
-		final AttributeResolvableAnnotation mapping = AttributeResolvableAnnotation.create(annotation, false);
+		final ResolvedAnnotation mapping = ResolvedAnnotation.create(annotation, false);
 		Assert.assertEquals(annotation.annotationType(), mapping.annotationType());
 	}
 
@@ -144,34 +144,34 @@ public class AttributeResolvableAnnotationTest {
 	public void testIsResolved() {
 		final Annotation1 annotation1 = Foo.class.getAnnotation(Annotation1.class);
 
-		final AttributeResolvableAnnotation mapping1 = AttributeResolvableAnnotation.create(annotation1, true);
+		final ResolvedAnnotation mapping1 = ResolvedAnnotation.create(annotation1, true);
 		Assert.assertTrue(mapping1.isResolved());
-		Assert.assertFalse(AttributeResolvableAnnotation.create(annotation1, false).isResolved());
+		Assert.assertFalse(ResolvedAnnotation.create(annotation1, false).isResolved());
 
 		final Annotation2 annotation2 = Foo.class.getAnnotation(Annotation2.class);
-		AttributeResolvableAnnotation mapping2 = AttributeResolvableAnnotation.create(annotation2, true);
+		ResolvedAnnotation mapping2 = ResolvedAnnotation.create(annotation2, true);
 		Assert.assertFalse(mapping2.isResolved());
 
-		mapping2 = AttributeResolvableAnnotation.create(mapping1, annotation2, true);
+		mapping2 = ResolvedAnnotation.create(mapping1, annotation2, true);
 		Assert.assertTrue(mapping2.isResolved());
 	}
 
 	@Test
 	public void testGetAttributeIndex() {
 		final Annotation1 annotation = Foo.class.getAnnotation(Annotation1.class);
-		final AttributeResolvableAnnotation mapping = AttributeResolvableAnnotation.create(annotation, false);
+		final ResolvedAnnotation mapping = ResolvedAnnotation.create(annotation, false);
 		for (int i = 0; i < mapping.getAttributes().length; i++) {
 			final Method method = mapping.getAttributes()[i];
 			Assert.assertEquals(i, mapping.getAttributeIndex(method.getName(), method.getReturnType()));
 		}
-		Assert.assertEquals(AttributeResolvableAnnotation.NOT_FOUND_INDEX, mapping.getAttributeIndex("value", Void.class));
-		Assert.assertEquals(AttributeResolvableAnnotation.NOT_FOUND_INDEX, mapping.getAttributeIndex("nonexistent", Void.class));
+		Assert.assertEquals(ResolvedAnnotation.NOT_FOUND_INDEX, mapping.getAttributeIndex("value", Void.class));
+		Assert.assertEquals(ResolvedAnnotation.NOT_FOUND_INDEX, mapping.getAttributeIndex("nonexistent", Void.class));
 	}
 
 	@Test
 	public void testGetAttributeValue() {
 		final Annotation1 annotation = Foo.class.getAnnotation(Annotation1.class);
-		final AttributeResolvableAnnotation mapping = AttributeResolvableAnnotation.create(annotation, false);
+		final ResolvedAnnotation mapping = ResolvedAnnotation.create(annotation, false);
 
 		Assert.assertNull(mapping.getAttribute(Integer.MAX_VALUE));
 
@@ -191,23 +191,23 @@ public class AttributeResolvableAnnotationTest {
 	@Test
 	public void testGetResolvedAnnotation() {
 		final Annotation1 annotation = Foo.class.getAnnotation(Annotation1.class);
-		final AttributeResolvableAnnotation mapping = AttributeResolvableAnnotation.create(annotation, true);
-		final Annotation1 synthesis = (Annotation1)mapping.synthesis();
+		final ResolvedAnnotation mapping = ResolvedAnnotation.create(annotation, true);
+		final Annotation1 synthesis = mapping.synthesis();
 
 		Assert.assertEquals(annotation.annotationType(), synthesis.annotationType());
 		Assert.assertEquals(annotation.value(), synthesis.value());
 		Assert.assertEquals(annotation.value(), synthesis.value1());
 		Assert.assertEquals(annotation.value(), synthesis.value2());
 
-		Assert.assertTrue(AttributeResolvableAnnotationProxy.isProxied(synthesis));
-		Assert.assertSame(mapping, ((AttributeResolvableAnnotationProxy.Proxied)synthesis).getAnnotation());
+		Assert.assertTrue(ResolvedAnnotation.isResolvedAnnotation(synthesis));
+		Assert.assertSame(mapping, ((ResolvedAnnotation.ResolvedAnnotationInvocationHandler.Proxied)synthesis).getAnnotation());
 
 		Assert.assertNotEquals(synthesis, annotation);
 		Assert.assertNotEquals(synthesis.hashCode(), annotation.hashCode());
 		Assert.assertNotEquals(synthesis.toString(), annotation.toString());
 
 		final Annotation3 annotation3 = Foo.class.getAnnotation(Annotation3.class);
-		Assert.assertSame(annotation3, AttributeResolvableAnnotation.create(annotation3, true).synthesis());
+		Assert.assertSame(annotation3, ResolvedAnnotation.create(annotation3, true).synthesis());
 	}
 
 	// ======================= resolved attribute value =======================
@@ -215,7 +215,7 @@ public class AttributeResolvableAnnotationTest {
 	@Test
 	public void testGetResolvedAttributeValueWhenAliased() {
 		final Annotation1 annotation = Foo.class.getAnnotation(Annotation1.class);
-		final AttributeResolvableAnnotation mapping = AttributeResolvableAnnotation.create(annotation, true);
+		final ResolvedAnnotation mapping = ResolvedAnnotation.create(annotation, true);
 		Assert.assertNull(mapping.getResolvedAttributeValue(Integer.MIN_VALUE));
 
 		// value = value1 = value2
@@ -244,19 +244,19 @@ public class AttributeResolvableAnnotationTest {
 	@Test
 	public void testGetResolvedAttributeWhenOverwritten() {
 		final Annotation3 annotation3 = Foo.class.getAnnotation(Annotation3.class);
-		final AttributeResolvableAnnotation mapping3 = AttributeResolvableAnnotation.create(annotation3, true);
+		final ResolvedAnnotation mapping3 = ResolvedAnnotation.create(annotation3, true);
 		Assert.assertEquals(annotation3.value(), mapping3.getResolvedAttributeValue("value", String.class));
 		Assert.assertEquals((Integer)annotation3.alias(), mapping3.getResolvedAttributeValue("alias", Integer.class));
 
 		// annotation2中与annotation3同名同类型的属性value、alias被覆写
 		final Annotation2 annotation2 = Foo.class.getAnnotation(Annotation2.class);
-		final AttributeResolvableAnnotation mapping2 = AttributeResolvableAnnotation.create(mapping3, annotation2, true);
+		final ResolvedAnnotation mapping2 = ResolvedAnnotation.create(mapping3, annotation2, true);
 		Assert.assertEquals(annotation3.value(), mapping2.getResolvedAttributeValue("value", String.class));
 		Assert.assertEquals((Integer)annotation3.alias(), mapping2.getResolvedAttributeValue("alias", Integer.class));
 
 		// annotation1中与annotation3同名同类型的属性value被覆写，由于value存在别名value1，value2因此也一并被覆写
 		final Annotation1 annotation1 = Foo.class.getAnnotation(Annotation1.class);
-		final AttributeResolvableAnnotation mapping1 = AttributeResolvableAnnotation.create(mapping2, annotation1, true);
+		final ResolvedAnnotation mapping1 = ResolvedAnnotation.create(mapping2, annotation1, true);
 		Assert.assertEquals(annotation3.value(), mapping1.getResolvedAttributeValue("value", String.class));
 		Assert.assertEquals(annotation3.value(), mapping1.getResolvedAttributeValue("value1", String.class));
 		Assert.assertEquals(annotation3.value(), mapping1.getResolvedAttributeValue("value2", String.class));

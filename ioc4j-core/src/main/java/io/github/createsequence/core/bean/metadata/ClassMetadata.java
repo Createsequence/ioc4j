@@ -1,6 +1,6 @@
 package io.github.createsequence.core.bean.metadata;
 
-import io.github.createsequence.core.support.HierarchicalAnnotatedElement;
+import io.github.createsequence.core.support.annotation.HierarchicalAnnotatedElement;
 
 import java.lang.reflect.Modifier;
 import java.util.Collection;

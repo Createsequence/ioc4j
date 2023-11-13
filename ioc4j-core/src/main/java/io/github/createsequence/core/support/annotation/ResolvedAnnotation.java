@@ -19,13 +19,29 @@ import io.github.createsequence.core.util.ClassUtils;
 import io.github.createsequence.core.util.CollectionUtils;
 import io.github.createsequence.core.util.Graph;
 import io.github.createsequence.core.util.ReflectUtils;
+import io.github.createsequence.core.util.StringUtils;
+import lombok.Getter;
 import lombok.experimental.Delegate;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
 import java.util.function.IntConsumer;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -69,7 +85,7 @@ import java.util.stream.Stream;
  * @author huangchengxing
  * @see AliasFor
  */
-public class AttributeResolvableAnnotation implements Annotation {
+public class ResolvedAnnotation implements Annotation {
 
 	/**
 	 * 不存在的属性对应的默认下标
@@ -79,6 +95,7 @@ public class AttributeResolvableAnnotation implements Annotation {
 	/**
 	 * 注解属性，属性在该数组中的下标等同于属性本身
 	 */
+	@Getter
 	private final Method[] attributes;
 
 	/**
@@ -100,17 +117,18 @@ public class AttributeResolvableAnnotation implements Annotation {
 	 * 解析后的属性对应的数据源 <br>
 	 * 当属性被覆写时，该属性对应下标位置会指向覆写该属性的注解对象
 	 */
-	private final AttributeResolvableAnnotation[] resolvedAttributeSources;
+	private final ResolvedAnnotation[] resolvedAttributeSources;
 
 	/**
 	 * 子注解的映射对象，当该项为{@code null}时，则认为当前注解为根注解
 	 */
 	@Nullable
-	private final AttributeResolvableAnnotation source;
+	private final ResolvedAnnotation source;
 
 	/**
 	 * 注解属性
 	 */
+	@Getter
 	@Delegate(types = Annotation.class)
 	private final Annotation annotation;
 
@@ -120,9 +138,22 @@ public class AttributeResolvableAnnotation implements Annotation {
 	private volatile Annotation proxied;
 
 	/**
-	 * 该注解的属性是否发生了解析
+	 * 当前注解是否存在被解析的属性，当该值为{@code false}时，
+	 * 通过{@code getResolvedAttributeValue}获得的值皆为注解的原始属性值，
+	 * 通过{@link #synthesis()}获得注解对象为原始的注解对象。
 	 */
+	@Getter
 	private final boolean resolved;
+
+	/**
+	 * 当前注解是否由当前代理类生成
+	 *
+	 * @param annotation 注解对象
+	 * @return 是否
+	 */
+	public static boolean isResolvedAnnotation(Annotation annotation) {
+		return annotation instanceof ResolvedAnnotationInvocationHandler.Proxied;
+	}
 
 	/**
 	 * 构建一个注解映射对象
@@ -131,7 +162,7 @@ public class AttributeResolvableAnnotation implements Annotation {
 	 * @param resolveAnnotationAttribute 是否解析注解属性，为{@code true}时获得的注解皆支持属性覆盖与属性别名机制
 	 * @return 注解映射对象
 	 */
-	public static AttributeResolvableAnnotation create(Annotation annotation, boolean resolveAnnotationAttribute) {
+	public static ResolvedAnnotation create(Annotation annotation, boolean resolveAnnotationAttribute) {
 		return create(null, annotation, resolveAnnotationAttribute);
 	}
 
@@ -144,9 +175,9 @@ public class AttributeResolvableAnnotation implements Annotation {
 	 * @param resolveAnnotationAttribute 是否解析注解属性，为{@code true}时获得的注解皆支持属性覆盖与属性别名机制
 	 * @return 注解映射对象
 	 */
-	public static AttributeResolvableAnnotation create(
-		@Nullable AttributeResolvableAnnotation source, Annotation annotation, boolean resolveAnnotationAttribute) {
-		return new AttributeResolvableAnnotation(source, annotation, resolveAnnotationAttribute);
+	public static ResolvedAnnotation create(
+		@Nullable ResolvedAnnotation source, Annotation annotation, boolean resolveAnnotationAttribute) {
+		return new ResolvedAnnotation(source, annotation, resolveAnnotationAttribute);
 	}
 
 	/**
@@ -160,14 +191,14 @@ public class AttributeResolvableAnnotation implements Annotation {
 	 * <ul>
 	 *     <li>当{@code annotation}已经被代理过时抛出；</li>
 	 *     <li>当{@code source}包装的注解对象与{@code annotation}相同时抛出；</li>
-	 *     <li>当{@code annotation}包装的注解对象类型为{@code AttributeResolvableAnnotation}时抛出；</li>
+	 *     <li>当{@code annotation}包装的注解对象类型为{@code ResolvedAnnotation}时抛出；</li>
 	 * </ul>
 	 */
-	AttributeResolvableAnnotation(
-		@Nullable AttributeResolvableAnnotation source, Annotation annotation, boolean resolveAttribute) {
+	ResolvedAnnotation(
+		@Nullable ResolvedAnnotation source, Annotation annotation, boolean resolveAttribute) {
 		Objects.requireNonNull(annotation);
-		Asserts.isFalse(AttributeResolvableAnnotationProxy.isProxied(annotation), "annotation has been proxied");
-		Asserts.isFalse(annotation instanceof AttributeResolvableAnnotation, "annotation has been wrapped");
+		Asserts.isFalse(isResolvedAnnotation(annotation), "annotation has been proxied");
+		Asserts.isFalse(annotation instanceof ResolvedAnnotation, "annotation has been wrapped");
 		Asserts.isFalse(
 			Objects.nonNull(source) && Objects.equals(source.annotation, annotation),
 			"source annotation can not same with target [{}]", annotation
@@ -180,7 +211,7 @@ public class AttributeResolvableAnnotation implements Annotation {
 		this.aliasSets = new AliasSet[this.attributes.length];
 
 		// 解析后的属性与数据源
-		this.resolvedAttributeSources = new AttributeResolvableAnnotation[this.attributes.length];
+		this.resolvedAttributeSources = new ResolvedAnnotation[this.attributes.length];
 		this.resolvedAttributes = new int[this.attributes.length];
 		Arrays.fill(this.resolvedAttributes, NOT_FOUND_INDEX);
 
@@ -191,7 +222,7 @@ public class AttributeResolvableAnnotation implements Annotation {
 	/**
 	 * 解析属性
 	 */
-	private boolean resolveAttributes() {
+	protected boolean resolveAttributes() {
 		// 解析同一注解中的别名
 		resolveAliasAttributes();
 		// 使用子注解覆写当前注解中的属性
@@ -217,41 +248,12 @@ public class AttributeResolvableAnnotation implements Annotation {
 	 *
 	 * @return 根注解的映射对象
 	 */
-	public AttributeResolvableAnnotation getRoot() {
-		AttributeResolvableAnnotation ra = this;
+	public ResolvedAnnotation getRoot() {
+		ResolvedAnnotation ra = this;
 		while (Objects.nonNull(ra.source)) {
 			ra = ra.source;
 		}
 		return ra;
-	}
-
-	/**
-	 * 获取注解属性
-	 *
-	 * @return 注解属性
-	 */
-	public Method[] getAttributes() {
-		return attributes;
-	}
-
-	/**
-	 * 获取注解对象
-	 *
-	 * @return 注解对象
-	 */
-	public Annotation getAnnotation() {
-		return annotation;
-	}
-
-	/**
-	 * 当前注解是否存在被解析的属性，当该值为{@code false}时，
-	 * 通过{@code getResolvedAttributeValue}获得的值皆为注解的原始属性值，
-	 * 通过{@link #synthesis()}获得注解对象为原始的注解对象。
-	 *
-	 * @return 是否
-	 */
-	public boolean isResolved() {
-		return resolved;
 	}
 
 	/**
@@ -262,21 +264,22 @@ public class AttributeResolvableAnnotation implements Annotation {
 	 * </ul>
 	 * 当{@link #isResolved()}为{@code false}时，则该方法返回被包装的原始注解对象。
 	 *
-	 * @return 所需的注解，若{@link AttributeResolvableAnnotation#isResolved()}为{@code false}则返回的是原始的注解对象
+	 * @return 所需的注解，若{@link ResolvedAnnotation#isResolved()}为{@code false}则返回的是原始的注解对象
 	 */
-	public Annotation synthesis() {
+	@SuppressWarnings("unchecked")
+	public <A extends Annotation> A synthesis() {
 		if (!isResolved()) {
-			return annotation;
+			return (A) annotation;
 		}
 		// 双重检查保证线程安全的创建代理缓存
 		if (Objects.isNull(proxied)) {
 			synchronized (this) {
 				if (Objects.isNull(proxied)) {
-					proxied = AttributeResolvableAnnotationProxy.create(annotationType(), this);
+					proxied = ResolvedAnnotationInvocationHandler.create(annotationType(), this);
 				}
 			}
 		}
-		return proxied;
+		return (A) proxied;
 	}
 
 	// ================== 属性搜索 ==================
@@ -385,7 +388,7 @@ public class AttributeResolvableAnnotation implements Annotation {
 			return getAttributeValue(index);
 		}
 		// 若该属性被解析过，但是仍然还在当前实例中，则从实际属性获得值
-		AttributeResolvableAnnotation attributeSource = resolvedAttributeSources[index];
+		ResolvedAnnotation attributeSource = resolvedAttributeSources[index];
 		if (Objects.isNull(attributeSource)) {
 			return getAttributeValue(resolvedIndex);
 		}
@@ -404,23 +407,23 @@ public class AttributeResolvableAnnotation implements Annotation {
 			return;
 		}
 		// 获取除自己外的全部子注解
-		Deque<AttributeResolvableAnnotation> sources = new LinkedList<>();
+		Deque<ResolvedAnnotation> sources = new LinkedList<>();
 		Set<Class<? extends Annotation>> accessed = new HashSet<>();
 		accessed.add(this.annotationType());
-		AttributeResolvableAnnotation source = this.source;
-		while (Objects.nonNull(source)) {
+		ResolvedAnnotation curr = this.source;
+		while (Objects.nonNull(curr)) {
 			// 检查循环依赖
 			Asserts.isFalse(
-				accessed.contains(source.annotationType()),
+				accessed.contains(curr.annotationType()),
 				"circular dependency between [{}] and [{}]",
-				annotationType(), source.annotationType()
+				annotationType(), curr.annotationType()
 			);
-			sources.addFirst(source);
+			sources.addFirst(curr);
 			accessed.add(this.source.annotationType());
-			source = source.source;
+			curr = curr.source;
 		}
 		// 从根注解开始，令子注解依次覆写当前注解中的值
-		for (AttributeResolvableAnnotation ra : sources) {
+		for (ResolvedAnnotation ra : sources) {
 			updateResolvedAttributesByOverwrite(ra);
 		}
 	}
@@ -430,7 +433,7 @@ public class AttributeResolvableAnnotation implements Annotation {
 	 *  @param overwriteAnnotation 注解属性聚合
 	 *
 	 */
-	private void updateResolvedAttributesByOverwrite(AttributeResolvableAnnotation overwriteAnnotation) {
+	private void updateResolvedAttributesByOverwrite(ResolvedAnnotation overwriteAnnotation) {
 		for (int overwriteIndex = 0; overwriteIndex < overwriteAnnotation.getAttributes().length; overwriteIndex++) {
 			Method overwrite = overwriteAnnotation.getAttribute(overwriteIndex);
 			for (int targetIndex = 0; targetIndex < attributes.length; targetIndex++) {
@@ -450,7 +453,7 @@ public class AttributeResolvableAnnotation implements Annotation {
 	 * 更新需要覆写的属性的相关映射关系，若该属性存在别名，则将别名的映射关系一并覆写
 	 */
 	private void overwriteAttribute(
-			AttributeResolvableAnnotation overwriteAnnotation, int overwriteIndex, int targetIndex, boolean overwriteAliases) {
+		ResolvedAnnotation overwriteAnnotation, int overwriteIndex, int targetIndex, boolean overwriteAliases) {
 		// 若目标属性已被覆写，则不允许再次覆写
 		if (isOverwrittenAttribute(targetIndex)) {
 			return;
@@ -583,7 +586,7 @@ public class AttributeResolvableAnnotation implements Annotation {
 		if (o == null || getClass() != o.getClass()) {
 			return false;
 		}
-		AttributeResolvableAnnotation that = (AttributeResolvableAnnotation)o;
+		ResolvedAnnotation that = (ResolvedAnnotation)o;
 		return resolved == that.resolved && annotation.equals(that.annotation);
 	}
 
@@ -600,7 +603,7 @@ public class AttributeResolvableAnnotation implements Annotation {
 	/**
 	 * 别名设置，一组具有别名关系的属性会共用同一实例
 	 */
-	private class AliasSet {
+	class AliasSet {
 
 		/**
 		 * 关联的别名字段对应的属性在{@link #attributes}中的下标
@@ -673,7 +676,7 @@ public class AttributeResolvableAnnotation implements Annotation {
 					attributes[resolvedIndex], attribute, lastValue, def
 				);
 			}
-			Asserts.isFalse(resolvedIndex == NOT_FOUND_INDEX, "can not resolve aliased attributes from [{}]", annotation);
+			Asserts.isFalse(resolvedIndex == NOT_FOUND_INDEX, "can not getResolvedAnnotation aliased attributes from [{}]", annotation);
 			return resolvedIndex;
 		}
 
@@ -685,6 +688,153 @@ public class AttributeResolvableAnnotation implements Annotation {
 				consumer.accept(index);
 			}
 		}
+	}
 
+	/**
+	 * 代理注解处理器，用于为{@link ResolvedAnnotation}生成代理对象，当从该代理对象上获取属性值时，
+	 * 总是通过{@link ResolvedAnnotation#getResolvedAttributeValue(String, Class)}获取。
+	 *
+	 * @author huangchengxing
+	 * @see ResolvedAnnotation
+	 */
+	static class ResolvedAnnotationInvocationHandler implements InvocationHandler {
+
+		/**
+		 * 属性映射
+		 */
+		private final ResolvedAnnotation annotation;
+
+		/**
+		 * 代理方法
+		 */
+		private final Map<String, BiFunction<Method, Object[], Object>> methods;
+
+		/**
+		 * 属性值缓存
+		 */
+		private final Map<String, Object> valueCache;
+
+		/**
+		 * 创建一个代理对象
+		 *
+		 * @param annotationType 注解类型
+		 * @param annotation 已解析的注解对象
+		 * @param <A> 注解类型
+		 * @return 代理对象
+		 */
+		@SuppressWarnings("unchecked")
+		public static <A extends Annotation> A create(Class<? extends A> annotationType, ResolvedAnnotation annotation) {
+			Objects.requireNonNull(annotationType);
+			Objects.requireNonNull(annotation);
+			ResolvedAnnotationInvocationHandler invocationHandler = new ResolvedAnnotationInvocationHandler(annotation);
+			return (A) java.lang.reflect.Proxy.newProxyInstance(
+				annotationType.getClassLoader(),
+				new Class[]{ annotationType, Proxied.class },
+				invocationHandler
+			);
+		}
+
+		/**
+		 * 创建一个代理方法处理器
+		 *
+		 * @param annotation 属性映射
+		 */
+		private ResolvedAnnotationInvocationHandler(ResolvedAnnotation annotation) {
+			int methodCount = annotation.getAttributes().length;
+			this.methods = new HashMap<>(methodCount + 5);
+			this.valueCache = new ConcurrentHashMap<>(methodCount);
+			this.annotation = annotation;
+			loadMethods();
+		}
+
+		/**
+		 * 调用被代理的方法
+		 *
+		 * @param proxy  代理对象
+		 * @param method 方法
+		 * @param args   参数
+		 * @return 返回值
+		 */
+		@Override
+		public Object invoke(Object proxy, Method method, Object[] args) {
+			return Optional.ofNullable(methods.get(method.getName()))
+				.map(m -> m.apply(method, args))
+				.orElseGet(() -> ReflectUtils.invokeRaw(annotation.getAnnotation(), method, args));
+		}
+
+		// ============================== 代理方法 ==============================
+
+		/**
+		 * 预加载需要代理的方法
+		 */
+		private void loadMethods() {
+			methods.put("equals", (method, args) -> proxyEquals(args[0]));
+			methods.put("toString", (method, args) -> proxyToString());
+			methods.put("hashCode", (method, args) -> proxyHashCode());
+			methods.put("annotationType", (method, args) -> proxyAnnotationType());
+			methods.put("getAnnotation", (method, args) -> proxyGetAnnotation());
+			for (Method attribute : annotation.getAttributes()) {
+				methods.put(attribute.getName(), (method, args) -> getAttributeValue(method.getName(), method.getReturnType()));
+			}
+		}
+
+		/**
+		 * 代理{@link Annotation#toString()}方法
+		 */
+		private String proxyToString() {
+			String attributes = Stream.of(annotation.getAttributes())
+				.map(attribute -> StringUtils.format("{}={}", attribute.getName(), getAttributeValue(attribute.getName(), attribute.getReturnType())))
+				.collect(Collectors.joining(", "));
+			return StringUtils.format("@{}({})", annotation.annotationType().getName(), attributes);
+		}
+
+		/**
+		 * 代理{@link Annotation#hashCode()}方法
+		 */
+		private int proxyHashCode() {
+			return this.hashCode();
+		}
+
+		/**
+		 * 代理{@link Annotation#equals(Object)}方法
+		 */
+		private boolean proxyEquals(Object o) {
+			return Objects.equals(annotation, o);
+		}
+
+		/**
+		 * 代理{@link Annotation#annotationType()}方法
+		 */
+		private Class<? extends Annotation> proxyAnnotationType() {
+			return annotation.annotationType();
+		}
+
+		/**
+		 * 代理{@link Proxied#getAnnotation()}方法
+		 */
+		private ResolvedAnnotation proxyGetAnnotation() {
+			return annotation;
+		}
+
+		/**
+		 * 获取属性值
+		 */
+		private Object getAttributeValue(String attributeName, Class<?> attributeType) {
+			return valueCache.computeIfAbsent(attributeName, name -> annotation.getResolvedAttributeValue(attributeName, attributeType));
+		}
+
+		/**
+		 * 表明注解是一个合成的注解
+		 */
+		interface Proxied {
+
+			/**
+			 * 获取注解映射对象
+			 *
+			 * @return 注解映射对象
+			 */
+			ResolvedAnnotation getAnnotation();
+
+		}
 	}
 }

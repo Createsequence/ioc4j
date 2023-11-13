@@ -10,7 +10,7 @@ import java.lang.annotation.Target;
  * 令多个属性互相关联，当对其中任意属性赋值时，会将属性值一并同步到所有关联的属性中
  *
  * @author huangchengxing
- * @see AttributeResolvableAnnotation
+ * @see ResolvedAnnotation
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)

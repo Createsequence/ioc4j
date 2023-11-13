@@ -21,6 +21,7 @@ import io.github.createsequence.core.util.Graph;
 import io.github.createsequence.core.util.ReflectUtils;
 import io.github.createsequence.core.util.StringUtils;
 import lombok.Getter;
+import lombok.ToString;
 import lombok.experimental.Delegate;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -80,6 +81,7 @@ import java.util.stream.Stream;
  * @author huangchengxing
  * @see AliasFor
  */
+@ToString(onlyExplicitlyIncluded = true)
 public class ResolvedAnnotation implements Annotation {
 
 	/**
@@ -123,6 +125,7 @@ public class ResolvedAnnotation implements Annotation {
 	/**
 	 * 注解属性
 	 */
+	@ToString.Include
 	@Getter
 	@Delegate(types = Annotation.class)
 	private final Annotation annotation;
@@ -137,6 +140,7 @@ public class ResolvedAnnotation implements Annotation {
 	 * 通过{@code getResolvedAttributeValue}获得的值皆为注解的原始属性值，
 	 * 通过{@link #synthesis()}获得注解对象为原始的注解对象。
 	 */
+	@ToString.Include
 	@Getter
 	private final boolean resolved;
 
@@ -682,6 +686,13 @@ public class ResolvedAnnotation implements Annotation {
 			for (int index : indexes) {
 				consumer.accept(index);
 			}
+		}
+
+		@Override
+		public String toString() {
+			return IntStream.of(indexes)
+				.mapToObj(i -> attributes[i].getName())
+				.collect(Collectors.joining(" <-> ", "[", "]"));
 		}
 	}
 

@@ -84,7 +84,7 @@ public interface MethodMetadata extends HierarchicalAnnotatedElement<Method, Met
         Class<?>[] childParameterTypes = childMethod.getParameterTypes();
         Class<?>[] parentParameterTypes = parentMethod.getParameterTypes();
         for (int i = 0; i < childParameterTypes.length; i++) {
-            if (!ClassUtils.isAssignable(parentParameterTypes[i], childParameterTypes[i])) {
+            if (ClassUtils.isNotAssignable(parentParameterTypes[i], childParameterTypes[i])) {
                 return false;
             }
         }

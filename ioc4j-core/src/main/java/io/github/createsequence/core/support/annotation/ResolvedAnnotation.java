@@ -50,11 +50,6 @@ import java.util.stream.Stream;
  * 包装后的可以通过{@code getResolvedXXX}获得注解对象或属性值，
  * 可以支持属性别名与属性覆写的属性解析机制。
  *
- * <p><strong>父子注解</strong>
- * <p>当实例创建时，可通过{@link #source}指定当前注解的子注解，多个实例通过该引用，
- * 可以构成一条表示父子/元注解关系的单向链表。<br>
- * 当{@link #source}为{@code null}时，认为当前注解即为根注解。
- *
  * <p><strong>属性别名</strong>
  * <p>注解内的属性可以通过{@link AliasFor}互相关联，当解析时，
  * 对绑定中的任意一个属性的赋值，会被同步给其他直接或者间接关联的属性。<br>
@@ -120,7 +115,7 @@ public class ResolvedAnnotation implements Annotation {
 	private final ResolvedAnnotation[] resolvedAttributeSources;
 
 	/**
-	 * 子注解的映射对象，当该项为{@code null}时，则认为当前注解为根注解
+	 * 当前注解的上一级注解对象，当该项为{@code null}时，则认为当前注解为根注解
 	 */
 	@Nullable
 	private final ResolvedAnnotation source;
@@ -135,7 +130,7 @@ public class ResolvedAnnotation implements Annotation {
 	/**
 	 * 代理对象缓存
 	 */
-	private volatile Annotation proxied;
+	private Annotation proxied;
 
 	/**
 	 * 当前注解是否存在被解析的属性，当该值为{@code false}时，
@@ -201,7 +196,7 @@ public class ResolvedAnnotation implements Annotation {
 		Asserts.isFalse(annotation instanceof ResolvedAnnotation, "annotation has been wrapped");
 		Asserts.isFalse(
 			Objects.nonNull(source) && Objects.equals(source.annotation, annotation),
-			"source annotation can not same with target [{}]", annotation
+			"The source annotation can not same with target [{}]", annotation
 		);
 		this.annotation = annotation;
 		this.attributes = AnnotationUtils.getAnnotationAttributes(annotation.annotationType());
@@ -392,7 +387,7 @@ public class ResolvedAnnotation implements Annotation {
 		if (Objects.isNull(attributeSource)) {
 			return getAttributeValue(resolvedIndex);
 		}
-		// 若该属性被解析过，且不在本注解中，则从其元注解获得对应的值
+		// 若该属性被解析过，且不在本注解中，则从覆写它的注解中获得对应的值
 		return attributeSource.getResolvedAttributeValue(resolvedIndex);
 	}
 
@@ -415,35 +410,36 @@ public class ResolvedAnnotation implements Annotation {
 			// 检查循环依赖
 			Asserts.isFalse(
 				accessed.contains(curr.annotationType()),
-				"circular dependency between [{}] and [{}]",
+				"Circular dependency between [{}] and [{}]",
 				annotationType(), curr.annotationType()
 			);
+			// 尾插法，因此循环结束后，sources中头结点为根注解，而尾节点为当前注解
 			sources.addFirst(curr);
 			accessed.add(this.source.annotationType());
 			curr = curr.source;
 		}
-		// 从根注解开始，令子注解依次覆写当前注解中的值
+		// 从根注解开始，依次覆写当前注解中的同名属性
 		for (ResolvedAnnotation ra : sources) {
 			updateResolvedAttributesByOverwrite(ra);
 		}
 	}
 
 	/**
-	 * 令{@code annotationAttributes}中属性覆写当前注解中同名同类型且未被覆写的属性
-	 *  @param overwriteAnnotation 注解属性聚合
+	 * 令{@code annotationAttributes}中属性覆写当前注解中同名、同类型且未被覆写的属性
 	 *
+	 *  @param overwriteAnnotation 当前注解的上级注解，即用于覆写当前注解属性的注解
 	 */
 	private void updateResolvedAttributesByOverwrite(ResolvedAnnotation overwriteAnnotation) {
+		// 遍历覆写注解中的全部属性，然后依次与当前注解中的每一个属性进行匹配
 		for (int overwriteIndex = 0; overwriteIndex < overwriteAnnotation.getAttributes().length; overwriteIndex++) {
 			Method overwrite = overwriteAnnotation.getAttribute(overwriteIndex);
 			for (int targetIndex = 0; targetIndex < attributes.length; targetIndex++) {
 				Method attribute =  attributes[targetIndex];
-				// 覆写的属性与被覆写的属性名称与类型必须一致
+				// 若有属性与当前属性名称与类型都一致，且未被覆写，则覆写该属性
 				if (!Objects.equals(attribute.getName(), overwrite.getName())
-					|| !ClassUtils.isAssignable(attribute.getReturnType(), overwrite.getReturnType())) {
+					|| ClassUtils.isNotAssignable(attribute.getReturnType(), overwrite.getReturnType())) {
 					continue;
 				}
-				// 若目标属性未被覆写，则覆写其属性
 				overwriteAttribute(overwriteAnnotation, overwriteIndex, targetIndex, true);
 			}
 		}
@@ -512,7 +508,6 @@ public class ResolvedAnnotation implements Annotation {
 			deque.addLast(target);
 			while (!deque.isEmpty()) {
 				Method curr = deque.removeFirst();
-				// 已经访问过的节点不再访问
 				if (accessed.contains(curr)) {
 					continue;
 				}
@@ -544,19 +539,19 @@ public class ResolvedAnnotation implements Annotation {
 	private Method getAliasAttribute(Method attribute, AliasFor attributeAnnotation) {
 		// 获取别名属性下标，该属性必须在当前注解中存在
 		int aliasAttributeIndex = getAttributeIndex(attributeAnnotation.value(), attribute.getReturnType());
-		Asserts.isTrue(hasAttribute(aliasAttributeIndex), "can not find alias attribute [{}] in [{}]", attributeAnnotation.value(), this.annotation.annotationType());
+		Asserts.isTrue(hasAttribute(aliasAttributeIndex), "Can not find alias attribute [{}] in [{}]", attributeAnnotation.value(), this.annotation.annotationType());
 
 		// 获取具体的别名属性，该属性不能是其本身
 		Method aliasAttribute = getAttribute(aliasAttributeIndex);
 		Asserts.isFalse(
 			Objects.equals(aliasAttribute, attribute),
-			"attribute [{}] can not alias for itself", attribute
+			"Attribute [{}] can not alias for itself", attribute
 		);
 
 		// 互为别名的属性类型必须一致
 		Asserts.isTrue(
 			ClassUtils.isAssignable(attribute.getReturnType(), aliasAttribute.getReturnType()),
-			"aliased attributes [{}] and [{}] must have same return type",
+			"Aliased attributes [{}] and [{}] must have same return type",
 			attribute, aliasAttribute
 		);
 		return aliasAttribute;
@@ -653,7 +648,7 @@ public class ResolvedAnnotation implements Annotation {
 					if (!isDefault) {
 						Asserts.isTrue(
 							Objects.equals(lastValue, undef),
-							"aliased attribute [{}] and [{}] must have same not default value, but is different: [{}] <==> [{}]",
+							"Aliased attribute [{}] and [{}] must have same not default value, but is different: [{}] <==> [{}]",
 							attributes[resolvedIndex], attribute, lastValue, undef
 						);
 					}
@@ -672,11 +667,11 @@ public class ResolvedAnnotation implements Annotation {
 				// 不是首个属性，还没有非默认值，如果当前也是默认值，则要求两值必须相等
 				Asserts.isTrue(
 					Objects.equals(lastValue, def),
-					"aliased attribute [{}] and [{}] must have same default value, but is different: [{}] <==> [{}]",
+					"Aliased attribute [{}] and [{}] must have same default value, but is different: [{}] <==> [{}]",
 					attributes[resolvedIndex], attribute, lastValue, def
 				);
 			}
-			Asserts.isFalse(resolvedIndex == NOT_FOUND_INDEX, "can not getResolvedAnnotation aliased attributes from [{}]", annotation);
+			Asserts.isFalse(resolvedIndex == NOT_FOUND_INDEX, "Can not resolve aliased attributes from [{}]", annotation);
 			return resolvedIndex;
 		}
 

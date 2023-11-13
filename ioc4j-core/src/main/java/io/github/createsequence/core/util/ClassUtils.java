@@ -48,6 +48,17 @@ public class ClassUtils {
     }
 
     /**
+     * 检查{@code target}是否无法通过{@code sourceType}转换得到
+     *
+     * @param targetType 目标类型，可以是源类型的父类
+     * @param sourceType 源类型
+     * @return 是否
+     */
+    public static boolean isNotAssignable(Class<?> targetType, Class<?> sourceType) {
+        return !isAssignable(targetType, sourceType);
+    }
+
+    /**
      * Whether the given class is {@code Object} or {@code Void}.
      *
      * @param clazz clazz

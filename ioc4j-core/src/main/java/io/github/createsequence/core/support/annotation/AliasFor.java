@@ -7,7 +7,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 令多个属性互相关联，当对其中任意属性赋值时，会将属性值一并同步到所有关联的属性中
+ * 令多个属性互相关联，当对其中任意属性赋值时，会将属性值一并同步到所有关联的属性中。<br/>
+ * 该机制支持{@code  a <-> b }形式的互相绑定，也支持{@code  a -> b -> c }形式的单向绑定。
  *
  * @author huangchengxing
  * @see ResolvedAnnotation

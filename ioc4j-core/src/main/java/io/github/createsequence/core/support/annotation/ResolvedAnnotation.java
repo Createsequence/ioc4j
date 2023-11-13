@@ -540,10 +540,10 @@ public class ResolvedAnnotation implements Annotation {
 	/**
 	 * 获取属性别名，并对其进行基本校验
 	 */
-	private Method getAliasAttribute(Method attribute, AliasFor attributeAnnotation) {
+	private Method getAliasAttribute(Method attribute, AliasFor aliasFor) {
 		// 获取别名属性下标，该属性必须在当前注解中存在
-		int aliasAttributeIndex = getAttributeIndex(attributeAnnotation.value(), attribute.getReturnType());
-		Asserts.isTrue(hasAttribute(aliasAttributeIndex), "Can not find alias attribute [{}] in [{}]", attributeAnnotation.value(), this.annotation.annotationType());
+		int aliasAttributeIndex = getAttributeIndex(aliasFor.value(), attribute.getReturnType());
+		Asserts.isTrue(hasAttribute(aliasAttributeIndex), "Can not find alias attribute [{}] in [{}]", aliasFor.value(), this.annotation.annotationType());
 
 		// 获取具体的别名属性，该属性不能是其本身
 		Method aliasAttribute = getAttribute(aliasAttributeIndex);

@@ -143,7 +143,7 @@ public abstract class ResolvedAnnotations implements Streamable<ResolvedAnnotati
      */
     public List<Annotation> getMetaAnnotations() {
         return annotations.values().stream()
-            .skip(1L)
+            .filter(ra -> !ra.isRoot())
             .map(ResolvedAnnotation::getAnnotation)
             .toList();
     }

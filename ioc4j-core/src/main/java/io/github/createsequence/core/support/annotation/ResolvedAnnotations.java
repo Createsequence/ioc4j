@@ -216,7 +216,7 @@ public abstract class ResolvedAnnotations implements Streamable<ResolvedAnnotati
          *
          * @param annotation 待合并的注解
          */
-        public void append(@NonNull Annotation annotation) {
+        public Combination append(@NonNull Annotation annotation) {
             Asserts.isNotNull(annotation, "The annotation must not null!");
             Asserts.isFalse(
                 annotations.containsKey(annotation.annotationType()),
@@ -225,6 +225,7 @@ public abstract class ResolvedAnnotations implements Streamable<ResolvedAnnotati
             ResolvedAnnotation last = CollectionUtils.get(annotations.values(), annotations.size() - 1);
             ResolvedAnnotation resolvedAnnotation = ResolvedAnnotation.create(last, annotation, resolveAttribute);
             annotations.put(annotation.annotationType(), resolvedAnnotation);
+            return this;
         }
     }
 }

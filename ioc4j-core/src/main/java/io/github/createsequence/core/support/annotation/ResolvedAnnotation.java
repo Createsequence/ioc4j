@@ -675,7 +675,7 @@ public class ResolvedAnnotation implements Annotation {
 					attributes[resolvedIndex], attribute, lastValue, def
 				);
 			}
-			Asserts.isFalse(resolvedIndex == NOT_FOUND_INDEX, "Can not resolve aliased attributes from [{}]", annotation);
+			Asserts.isFalse(resolvedIndex == NOT_FOUND_INDEX, "Can not resolve aliased attributes createElement [{}]", annotation);
 			return resolvedIndex;
 		}
 

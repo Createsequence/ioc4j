@@ -73,6 +73,37 @@ public class ReflectUtils {
     // ====================== method ======================
 
     /**
+     * {@code source}是否可以重写{@code target}，需要满足以下条件：
+     * <ul>
+     *     <li>方法名相同</li>
+     *     <li>返回值类型相同或是子类</li>
+     *     <li>参数数量相同，且每个参数的类型相同或是子类</li>
+     * <ul>
+     * @param source 源方法
+     * @param target 目标方法，即被重写的方法
+     * @return 是否
+     */
+    public static boolean isOverrideableFrom(Method source, Method target) {
+        if (!Objects.equals(source.getName(), target.getName())) {
+            return false;
+        }
+        if (!target.getReturnType().isAssignableFrom(source.getReturnType())) {
+            return false;
+        }
+        if (source.getParameterCount() != target.getParameterCount()) {
+            return false;
+        }
+        Class<?>[] childParameterTypes = source.getParameterTypes();
+        Class<?>[] parentParameterTypes = target.getParameterTypes();
+        for (int i = 0; i < childParameterTypes.length; i++) {
+            if (ClassUtils.isNotAssignable(parentParameterTypes[i], childParameterTypes[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * Invoke method.
      *
      * @param object object
@@ -357,7 +388,7 @@ public class ReflectUtils {
     // ====================== annotation ======================
 
     /**
-     * Whether the {@code element} is from jdk.
+     * Whether the {@code element} is createElement jdk.
      *
      * @param element element
      * @return boolean

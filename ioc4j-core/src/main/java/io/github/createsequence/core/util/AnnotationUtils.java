@@ -200,7 +200,13 @@ public class AnnotationUtils {
         return getAnnotationFromRepeatableContainer(annotationType, container);
     }
 
-    private static <A> Optional<Class<? extends Annotation>> determineRepeatableContainerType(Class<A> annotationType) {
+    /**
+     * 获取可重复注解的容器类型
+     *
+     * @param annotationType 注解类型
+     * @return 容器类型
+     */
+    public static <A> Optional<Class<? extends Annotation>> determineRepeatableContainerType(Class<A> annotationType) {
         return Optional.ofNullable(annotationType)
             .map(t -> t.getDeclaredAnnotation(Repeatable.class))
             .map(Repeatable::value);
@@ -208,7 +214,7 @@ public class AnnotationUtils {
 
     @SuppressWarnings("unchecked")
     @SneakyThrows
-    private static <A> A[] getAnnotationFromRepeatableContainer(Class<A> annotationType, Annotation container) {
+    public static <A> A[] getAnnotationFromRepeatableContainer(Class<A> annotationType, Annotation container) {
         if (SynthesizedAnnotationInvocationHandler.isSynthesized(container)) {
             return (A[])((SynthesizedAnnotationInvocationHandler)Proxy.getInvocationHandler(container)).getMemberValues().get(VALUE);
         }

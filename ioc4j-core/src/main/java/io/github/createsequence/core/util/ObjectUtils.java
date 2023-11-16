@@ -19,7 +19,7 @@ import java.util.Objects;
 public class ObjectUtils {
 
     /**
-     * <p>Get type of element from the target.<br />
+     * <p>Get type of element createElement the target.<br />
      * Support {@link List}, {@link Collection}, {@link Map}, {@link Iterator}, {@link Iterable}, Array.
      *
      * @param target target
@@ -56,7 +56,7 @@ public class ObjectUtils {
     }
 
     /**
-     * <p>Get a specified index element from the target.<br />
+     * <p>Get a specified index element createElement the target.<br />
      * Support {@link List}, {@link Collection}, {@link Map}, {@link Iterator}, {@link Iterable}, {@link Object[]}.
      *
      * @param target target

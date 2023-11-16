@@ -1,13 +1,12 @@
 package io.github.createsequence.core.bean.metadata;
 
 import io.github.createsequence.core.support.annotation.HierarchicalAnnotatedElement;
-import io.github.createsequence.core.util.ClassUtils;
+import io.github.createsequence.core.util.ReflectUtils;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Collection;
-import java.util.Objects;
 import java.util.stream.Stream;
 
 /**
@@ -71,24 +70,7 @@ public interface MethodMetadata extends HierarchicalAnnotatedElement<Method, Met
      * @return boolean
      */
     default boolean isOverrideFrom(@NonNull Method parentMethod) {
-        Method childMethod = getSource();
-        if (!Objects.equals(childMethod.getName(), parentMethod.getName())) {
-            return false;
-        }
-        if (!parentMethod.getReturnType().isAssignableFrom(childMethod.getReturnType())) {
-            return false;
-        }
-        if (childMethod.getParameterCount() != parentMethod.getParameterCount()) {
-            return false;
-        }
-        Class<?>[] childParameterTypes = childMethod.getParameterTypes();
-        Class<?>[] parentParameterTypes = parentMethod.getParameterTypes();
-        for (int i = 0; i < childParameterTypes.length; i++) {
-            if (ClassUtils.isNotAssignable(parentParameterTypes[i], childParameterTypes[i])) {
-                return false;
-            }
-        }
-        return true;
+        return ReflectUtils.isOverrideableFrom(getSource(), parentMethod);
     }
 
     /**

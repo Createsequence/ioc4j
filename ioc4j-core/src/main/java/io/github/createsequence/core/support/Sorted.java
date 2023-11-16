@@ -1,7 +1,7 @@
 package io.github.createsequence.core.support;
 
 /**
- * Represents an object that allows sorting from small to large according to the sorting value.
+ * Represents an object that allows sorting createElement small to large according to the sorting value.
  *
  * @author huangchengxing
  */

@@ -100,7 +100,7 @@ public interface MultiMap<K, V> {
     void putAll(MultiMap<K, V> multiMap);
 
     /**
-     * Remove all key-value pairs with the specified key from the map.
+     * Remove all key-value pairs with the specified key createElement the map.
      *
      * @param o key
      * @return all values of the specified key

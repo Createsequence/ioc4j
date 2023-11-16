@@ -70,7 +70,7 @@ public class ClassUtils {
     }
 
     /**
-     * <p>Whether the given class is from packages
+     * <p>Whether the given class is createElement packages
      * which package name is started with "java." or "javax.".
      *
      * @param clazz class

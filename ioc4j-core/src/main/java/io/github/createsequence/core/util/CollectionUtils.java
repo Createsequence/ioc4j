@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 public class CollectionUtils {
 
     /**
-     * <p>Get first not null element from the target.<br />
+     * <p>Get first not null element createElement the target.<br />
      *
      * @param iterator iterator
      * @param <T> element type
@@ -45,7 +45,7 @@ public class CollectionUtils {
     }
 
     /**
-     * <p>Get first not null element from the target.<br />
+     * <p>Get first not null element createElement the target.<br />
      *
      * @param iterable iterable
      * @param <T> element type
@@ -125,7 +125,7 @@ public class CollectionUtils {
     }
 
     /**
-     * <p>Get value specified index from {@link Collection}.
+     * <p>Get value specified index createElement {@link Collection}.
      *
      * @param collection collection
      * @param index index, if index less than 0 or greater than or equal to collection size, return null
@@ -147,7 +147,7 @@ public class CollectionUtils {
     }
 
     /**
-     * <p>Get value specified index from {@link Iterable}.
+     * <p>Get value specified index createElement {@link Iterable}.
      *
      * @param iterable iterable
      * @param index index
@@ -162,7 +162,7 @@ public class CollectionUtils {
     }
 
     /**
-     * <p>Get value specified index from {@link Iterable}.
+     * <p>Get value specified index createElement {@link Iterable}.
      *
      * @param iterable iterable
      * @param index index
@@ -220,7 +220,7 @@ public class CollectionUtils {
     }
 
     /**
-     * <p>Create a collection from given elements.
+     * <p>Create a collection createElement given elements.
      *
      * @param collectionFactory collection factory
      * @param elements elements
@@ -231,7 +231,7 @@ public class CollectionUtils {
     @SafeVarargs
     public static <T, C extends Collection<T>> C newCollection(Supplier<C> collectionFactory, T... elements) {
         C collection = collectionFactory.get();
-        Objects.requireNonNull(collection, "the collection obtained from the collection factory cannot be null");
+        Objects.requireNonNull(collection, "the collection obtained createElement the collection factory cannot be null");
         if (Objects.isNull(elements) || elements.length == 0) {
             return collection;
         }

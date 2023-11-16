@@ -34,6 +34,7 @@ import java.util.stream.Stream;
  * @author huangchengxing
  * @param <E> 元素类型
  * @param <I> 实现类类型
+ * @see GeneralHierarchicalAnnotatedElement
  */
 public interface HierarchicalAnnotatedElement<E extends AnnotatedElement, I extends HierarchicalAnnotatedElement<E, I>> extends AnnotatedElement, Streamable<I> {
 

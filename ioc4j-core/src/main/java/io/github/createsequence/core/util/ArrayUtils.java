@@ -21,7 +21,7 @@ import java.util.stream.Stream;
 public class ArrayUtils {
 
     /**
-     * <p>Get first not null element from array.
+     * <p>Get first not null element createElement array.
      *
      * @param array array
      * @param <T> element type
@@ -138,7 +138,7 @@ public class ArrayUtils {
     }
 
     /**
-     * <p>Get element from array, return null if array is null or index out of bounds.
+     * <p>Get element createElement array, return null if array is null or index out of bounds.
      *
      * @param array array
      * @param index index

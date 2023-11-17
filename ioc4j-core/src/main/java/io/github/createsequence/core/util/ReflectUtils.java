@@ -13,19 +13,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -197,7 +185,11 @@ public class ReflectUtils {
      * @return method list
      */
     public static Method[] getDeclaredMethods(Class<?> type) {
-        return CollectionUtils.computeIfAbsent(DECLARED_METHOD_CACHE, type, k -> type.getDeclaredMethods());
+        return DECLARED_METHOD_CACHE.computeIfAbsent(
+            type, t -> Stream.of(t.getDeclaredMethods())
+                .filter(m -> !m.isSynthetic())
+                .toArray(Method[]::new)
+        );
     }
 
     /**
@@ -222,7 +214,7 @@ public class ReflectUtils {
      * @see Class#getMethods()
      */
     public static Method[] getMethods(Class<?> type) {
-        return CollectionUtils.computeIfAbsent(METHOD_CACHE, type, curr -> {
+        return METHOD_CACHE.computeIfAbsent(type, curr -> {
             List<Method> methods = new ArrayList<>();
             traverseTypeHierarchy(curr, t -> methods.addAll(Arrays.asList(getDeclaredMethods(t))));
             return methods.toArray(new Method[0]);
@@ -416,7 +408,7 @@ public class ReflectUtils {
      * @return declared super class with interface
      */
     public static Set<Class<?>> getDeclaredSuperClassWithInterface(Class<?> type) {
-        return CollectionUtils.computeIfAbsent(DECLARED_SUPER_CLASS_WITH_INTERFACE, type, k -> {
+        return DECLARED_SUPER_CLASS_WITH_INTERFACE.computeIfAbsent(type, k -> {
             Set<Class<?>> result = new LinkedHashSet<>();
             Class<?> superClass = type.getSuperclass();
             if (superClass != null) {
@@ -487,7 +479,7 @@ public class ReflectUtils {
      * @return field array
      */
     public static Field[] getDeclaredFields(Class<?> type) {
-        return CollectionUtils.computeIfAbsent(DECLARED_FIELD_CACHE, type, Class::getDeclaredFields);
+        return DECLARED_FIELD_CACHE.computeIfAbsent(type, Class::getDeclaredFields);
     }
 
     /**
@@ -512,7 +504,7 @@ public class ReflectUtils {
      * @return field array
      */
     public static Field[] getFields(Class<?> type) {
-        return CollectionUtils.computeIfAbsent(FIELD_CACHE, type, t -> {
+        return FIELD_CACHE.computeIfAbsent(type, t -> {
             List<Field> fields = new ArrayList<>();
             traverseTypeHierarchy(t, curr -> fields.addAll(Arrays.asList(getDeclaredFields(curr))));
             return fields.toArray(new Field[0]);

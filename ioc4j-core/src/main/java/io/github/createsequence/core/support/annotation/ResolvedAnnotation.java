@@ -23,24 +23,14 @@ import io.github.createsequence.core.util.StringUtils;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.experimental.Delegate;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiFunction;
 import java.util.function.IntConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -133,7 +123,7 @@ public class ResolvedAnnotation implements Annotation {
 	/**
 	 * 代理对象缓存
 	 */
-	private Annotation proxied;
+	private volatile Annotation proxied;
 
 	/**
 	 * 当前注解是否存在被解析的属性，当该值为{@code false}时，
@@ -393,6 +383,30 @@ public class ResolvedAnnotation implements Annotation {
 		}
 		// 若该属性被解析过，且不在本注解中，则从覆写它的注解中获得对应的值
 		return attributeSource.getResolvedAttributeValue(resolvedIndex);
+	}
+
+	/**
+	 * 某个属性值是否已经被解析
+	 *
+	 * @param index 属性值下标
+	 * @return 是否
+	 */
+	public boolean isResolvedAttribute(int index) {
+		if (!isResolved() || !hasAttribute(index)) {
+			return false;
+		}
+		return resolvedAttributes[index] != NOT_FOUND_INDEX;
+	}
+
+	/**
+	 * 某个属性值是否已经被解析
+	 *
+	 * @param attributeName 属性名称
+	 * @param attributeType 属性类型
+	 * @return 是否
+	 */
+	public boolean isResolvedAttribute(String attributeName, Class<?> attributeType) {
+		return isResolvedAttribute(getAttributeIndex(attributeName, attributeType));
 	}
 
 	// ================== 解析覆写属性 ==================
@@ -708,12 +722,8 @@ public class ResolvedAnnotation implements Annotation {
 		/**
 		 * 属性映射
 		 */
+		@NonNull
 		private final ResolvedAnnotation annotation;
-
-		/**
-		 * 代理方法
-		 */
-		private final Map<String, BiFunction<Method, Object[], Object>> methods;
 
 		/**
 		 * 属性值缓存
@@ -745,12 +755,10 @@ public class ResolvedAnnotation implements Annotation {
 		 *
 		 * @param annotation 属性映射
 		 */
-		private ResolvedAnnotationInvocationHandler(ResolvedAnnotation annotation) {
+		private ResolvedAnnotationInvocationHandler(@NonNull ResolvedAnnotation annotation) {
 			int methodCount = annotation.getAttributes().length;
-			this.methods = new HashMap<>(methodCount + 5);
 			this.valueCache = new ConcurrentHashMap<>(methodCount);
 			this.annotation = annotation;
-			loadMethods();
 		}
 
 		/**
@@ -763,26 +771,18 @@ public class ResolvedAnnotation implements Annotation {
 		 */
 		@Override
 		public Object invoke(Object proxy, Method method, Object[] args) {
-			return Optional.ofNullable(methods.get(method.getName()))
-				.map(m -> m.apply(method, args))
-				.orElseGet(() -> ReflectUtils.invokeRaw(annotation.getAnnotation(), method, args));
+			return switch (method.getName()) {
+				case "equals" -> proxyEquals(args[0]);
+				case "toString" -> proxyToString();
+				case "hashCode" -> proxyHashCode();
+				case "annotationType" -> proxyAnnotationType();
+				case "getAnnotation" -> proxyGetAnnotation();
+				default -> Optional.ofNullable(getAttributeValue(method.getName(), method.getReturnType()))
+					.orElse(ReflectUtils.invokeRaw(annotation.getAnnotation(), method, args));
+			};
 		}
 
 		// ============================== 代理方法 ==============================
-
-		/**
-		 * 预加载需要代理的方法
-		 */
-		private void loadMethods() {
-			methods.put("equals", (method, args) -> proxyEquals(args[0]));
-			methods.put("toString", (method, args) -> proxyToString());
-			methods.put("hashCode", (method, args) -> proxyHashCode());
-			methods.put("annotationType", (method, args) -> proxyAnnotationType());
-			methods.put("getAnnotation", (method, args) -> proxyGetAnnotation());
-			for (Method attribute : annotation.getAttributes()) {
-				methods.put(attribute.getName(), (method, args) -> getAttributeValue(method.getName(), method.getReturnType()));
-			}
-		}
 
 		/**
 		 * 代理{@link Annotation#toString()}方法
@@ -840,7 +840,6 @@ public class ResolvedAnnotation implements Annotation {
 			 * @return 注解映射对象
 			 */
 			ResolvedAnnotation getAnnotation();
-
 		}
 	}
 }

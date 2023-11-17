@@ -9,7 +9,11 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.annotation.Annotation;
+import java.lang.annotation.Documented;
+import java.lang.annotation.Inherited;
 import java.lang.annotation.Repeatable;
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -20,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -31,7 +36,33 @@ import java.util.stream.Stream;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class AnnotationUtils {
 
+    private static final Set<Class<? extends Annotation>> JDK_META_ANNOTATIONS = Set.of(
+        Target.class, Retention.class, Inherited.class, Documented.class,
+        SuppressWarnings.class, Override.class, Deprecated.class
+    );
     private static final String VALUE = "value";
+
+    /**
+     * 是否是JDK原生元注解
+     *
+     * @param annotationType 注解类型
+     * @return 是否
+     * @see #JDK_META_ANNOTATIONS
+     */
+    public static boolean isJdkMetaAnnotation(Class<? extends Annotation> annotationType) {
+        return JDK_META_ANNOTATIONS.contains(annotationType);
+    }
+
+    /**
+     * 是否不是JDK原生元注解
+     *
+     * @param annotationType 注解类型
+     * @return 是否
+     * @see #JDK_META_ANNOTATIONS
+     */
+    public static boolean isNotJdkMetaAnnotation(Class<? extends Annotation> annotationType) {
+        return !isJdkMetaAnnotation(annotationType);
+    }
 
     /**
      * 当前注解是否包含指定类型的元注解

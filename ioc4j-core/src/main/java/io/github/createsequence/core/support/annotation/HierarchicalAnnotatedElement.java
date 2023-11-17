@@ -10,16 +10,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.lang.annotation.Annotation;
 import java.lang.annotation.Repeatable;
 import java.lang.reflect.AnnotatedElement;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Stream;
 
 /**
@@ -34,18 +25,11 @@ import java.util.stream.Stream;
  * @author huangchengxing
  * @param <E> 元素类型
  * @param <I> 实现类类型
- * @see GeneralHierarchicalAnnotatedElement
+ * @see HierarchicalElement
  */
-public interface HierarchicalAnnotatedElement<E extends AnnotatedElement, I extends HierarchicalAnnotatedElement<E, I>> extends AnnotatedElement, Streamable<I> {
+public interface HierarchicalAnnotatedElement<E extends AnnotatedElement, I extends HierarchicalAnnotatedElement<E, I>>
+    extends WrappedAnnotatedElement<E>, Streamable<I> {
 
-    /**
-     * 获取元素
-     *
-     * @return 元数据的来源
-     */
-    @NonNull
-    E getSource();
-    
     /**
      * 从层级结构中的所有的元素中查找首个匹配的注解
      *
@@ -178,5 +162,4 @@ public interface HierarchicalAnnotatedElement<E extends AnnotatedElement, I exte
             return m;
         }
     }
-
 }

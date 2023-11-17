@@ -2,6 +2,7 @@ package io.github.createsequence.core.support.annotation;
 
 import io.github.createsequence.core.util.AnnotationUtils;
 import io.github.createsequence.core.util.ArrayUtils;
+import io.github.createsequence.core.util.Asserts;
 import io.github.createsequence.core.util.Streamable;
 import lombok.Getter;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -26,7 +27,8 @@ import java.util.stream.Collectors;
  * @see ResolvedAnnotations
  */
 @Getter
-public class ResolvedAnnotatedElement<E extends AnnotatedElement> implements Streamable<ResolvedAnnotations>, AnnotatedElement {
+public class ResolvedAnnotatedElement<E extends AnnotatedElement>
+    implements Streamable<ResolvedAnnotations>, WrappedAnnotatedElement<E> {
 
     private final E source;
     private final List<ResolvedAnnotations> resolvedAnnotations;
@@ -37,11 +39,14 @@ public class ResolvedAnnotatedElement<E extends AnnotatedElement> implements Str
      * @param element 要包装的元素
      * @return {@link ResolvedAnnotatedElement}实例
      */
+    @SuppressWarnings("unchecked")
     public static <E extends AnnotatedElement> ResolvedAnnotatedElement<E> of(E element) {
-        return new ResolvedAnnotatedElement<>(element);
+        return element instanceof ResolvedAnnotatedElement<?> rae ?
+            (ResolvedAnnotatedElement<E>)rae : new ResolvedAnnotatedElement<>(element);
     }
 
-    ResolvedAnnotatedElement(E source) {
+    private ResolvedAnnotatedElement(E source) {
+        Asserts.isFalse(source instanceof ResolvedAnnotatedElement<?>, "source is already wrapped: {}", source);
         this.source = source;
         this.resolvedAnnotations = Arrays.stream(source.getDeclaredAnnotations())
             .map(ResolvedAnnotations::from)

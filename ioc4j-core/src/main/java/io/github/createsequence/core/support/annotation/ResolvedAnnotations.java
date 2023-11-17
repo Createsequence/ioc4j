@@ -1,8 +1,8 @@
 package io.github.createsequence.core.support.annotation;
 
+import io.github.createsequence.core.util.AnnotationUtils;
 import io.github.createsequence.core.util.ArrayUtils;
 import io.github.createsequence.core.util.Asserts;
-import io.github.createsequence.core.util.ClassUtils;
 import io.github.createsequence.core.util.CollectionUtils;
 import io.github.createsequence.core.util.Streamable;
 import lombok.Getter;
@@ -82,7 +82,7 @@ public abstract class ResolvedAnnotations implements Streamable<ResolvedAnnotati
      */
     public static ResolvedAnnotations from(
         @NonNull Annotation root, boolean resolveAttribute) {
-        Predicate<? super Annotation> filter = a -> !ClassUtils.isJdkClass(a.annotationType());
+        Predicate<? super Annotation> filter = a -> AnnotationUtils.isNotJdkMetaAnnotation(a.annotationType());
         return from(root, resolveAttribute, filter);
     }
 

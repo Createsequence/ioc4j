@@ -126,7 +126,7 @@ public class ClassUtils {
      * @param type type
      * @param <T> type
      * @return new instance
-     * @throws Ioc4jException if create instance failed
+     * @throws Ioc4jException if createElement instance failed
      */
     @SuppressWarnings("unchecked")
     public static <T> T newInstance(@NonNull Class<?> type) {

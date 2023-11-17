@@ -29,7 +29,18 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
-import java.util.*;
+import java.lang.reflect.Proxy;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.IntConsumer;
 import java.util.stream.Collectors;
@@ -743,7 +754,7 @@ public class ResolvedAnnotation implements Annotation {
 			Objects.requireNonNull(annotationType);
 			Objects.requireNonNull(annotation);
 			ResolvedAnnotationInvocationHandler invocationHandler = new ResolvedAnnotationInvocationHandler(annotation);
-			return (A) java.lang.reflect.Proxy.newProxyInstance(
+			return (A) Proxy.newProxyInstance(
 				annotationType.getClassLoader(),
 				new Class[]{ annotationType, Proxied.class },
 				invocationHandler
@@ -832,7 +843,7 @@ public class ResolvedAnnotation implements Annotation {
 		/**
 		 * 表明注解是一个合成的注解
 		 */
-		interface Proxied {
+		public interface Proxied {
 
 			/**
 			 * 获取注解映射对象

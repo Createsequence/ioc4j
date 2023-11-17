@@ -179,7 +179,7 @@ public abstract class ResolvedAnnotations implements Streamable<ResolvedAnnotati
         protected void init(Predicate<? super Annotation> filter) {
             // 按广度优先收集该注解上的元注解
             Deque<ResolvedAnnotation> queue = CollectionUtils.newCollection(LinkedList::new, root);
-            while (queue.isEmpty()) {
+            while (!queue.isEmpty()) {
                 ResolvedAnnotation source = queue.removeFirst();
                 Class<? extends Annotation> sourceType = source.annotationType();
                 if (annotations.containsKey(sourceType)) {

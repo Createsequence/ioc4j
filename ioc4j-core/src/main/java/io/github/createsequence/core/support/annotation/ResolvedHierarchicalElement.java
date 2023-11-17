@@ -181,6 +181,19 @@ public class ResolvedHierarchicalElement<E extends AnnotatedElement> implements 
     }
 
     /**
+     * 检查层级结构中的所有的元素中是否存在该注解
+     *
+     * @param annotationType 注解类型
+     * @return 是否
+     */
+    @Override
+    public boolean isAnnotationPresent(@NonNull Class<? extends Annotation> annotationType) {
+        return hierarchyStream(true)
+            .map(parent -> parent.getDeclaredAnnotation(annotationType))
+            .anyMatch(Objects::nonNull);
+    }
+
+    /**
      * 获取层级结构中的所有的元素上的全部注解
      *
      * @return 注解列表

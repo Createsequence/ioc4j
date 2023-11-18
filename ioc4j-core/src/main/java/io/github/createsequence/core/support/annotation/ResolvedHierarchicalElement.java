@@ -6,9 +6,7 @@ import io.github.createsequence.core.util.ArrayUtils;
 import io.github.createsequence.core.util.CollectionUtils;
 import io.github.createsequence.core.util.ReflectUtils;
 import io.github.createsequence.core.util.Streamable;
-import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.Delegate;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -18,6 +16,7 @@ import java.lang.annotation.Annotation;
 import java.lang.annotation.Repeatable;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -52,14 +51,13 @@ import java.util.stream.StreamSupport;
  *     <li>
  *         如果元素是{@link Method}，则{@link #getParents}将获得当前类的<i>父类与父接口中能够被重写的方法</i>，
  *         而{@link #stream}则返回包含其本身在内层级结构中所有可被重写的方法。<br />
- *         关于可被重写方法判断标准，参照{@link ReflectUtils#isOverrideableFrom}；
+ *         关于可被重写方法判断标准，参照{@link ReflectUtils#isOverrideableFrom}与{@link OverrideableMethodsDiscoverer}
  *     </li>
  *     <li>若是其他类型，则默认其<i>不具备层级结构</i>，{@link #getParents}返回空集合，{@link #stream}返回仅包含本身的流；</li>
  * </ul>
  *
  * <p><strong>注解增强</strong><br />
- * {@link ResolvedHierarchicalElement}中的所有注解都被封装为{@link ResolvedAnnotations}，
- * 因此通过实例获得的所有注解皆支持{@link ResolvedAnnotation}的增强机制，
+ * 通过实例获得的所有注解皆支持{@link ResolvedAnnotation}的增强机制，
  * 比如基于{@link AliasFor}的属性别名和对元注解的属性覆盖。
  *
  * <p><strong>注解查找</strong><br />
@@ -69,15 +67,21 @@ import java.util.stream.StreamSupport;
  *     <li>{@link #stream()}可快速遍历包括当前元素在内，其层级结构中所有{@link AnnotatedElement}上直接存在的注解及其元注解；</li>
  *     <li>{@code getXXX}：可用于访问包括当前元素在内，其层级结构中所有的注解及元注解；</li>
  *     <li>{@code getDeclaredXXX}：可用于访问包括当前元素上的注解及元注解；</li>
- * <ul>
+ * </ul>
+ *
+ * <p><strong>缓存</strong><br />
+ * 基于{@link #from}工厂方法创建的所有类型{@link ResolvedHierarchicalElement}均会被缓存，
+ * 缓存的加载是渐进式的，比如若基于{@link Class}创建一个实例，
+ * 那么当未访问其父类或父接口时，它们对应的缓存并不会被加载。<br/>
+ * 不存在强引用的缓存会在下一次GC时被回收，不过也可以通过{@link #clearCaches}主动清空。
  *
  * @author huangchengxing
  * @see ResolvedAnnotation
  */
 @ToString(onlyExplicitlyIncluded = true)
-@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class ResolvedHierarchicalElement<E extends AnnotatedElement> implements AnnotatedElement, Streamable<ResolvedAnnotations> {
 
+    // TODO 更换为 WeakConcurrentHashMap
     private static final Map<AnnotatedElement, ResolvedHierarchicalElement<? extends AnnotatedElement>> RESOLVED_ELEMENT_CACHES = new ConcurrentHashMap<>();
     private static final NoHierarchyElementDiscoverer NO_HIERARCHY_ELEMENT = new NoHierarchyElementDiscoverer();
     private static final OverrideableMethodsDiscoverer OVERRIDEABLE_METHODS = new OverrideableMethodsDiscoverer();
@@ -181,7 +185,7 @@ public class ResolvedHierarchicalElement<E extends AnnotatedElement> implements 
     }
 
     /**
-     * 检查层级结构中的所有的元素中是否存在该注解
+     * 检查该注解是否在层级结构中存在
      *
      * @param annotationType 注解类型
      * @return 是否
@@ -250,6 +254,16 @@ public class ResolvedHierarchicalElement<E extends AnnotatedElement> implements 
             .flatMap(ResolvedAnnotations::stream)
             .map(ResolvedAnnotation::<Annotation>synthesis)
             .toArray(Annotation[]::new);
+    }
+
+    /**
+     * 检查该注解是否在层级结构中存在
+     *
+     * @param annotationType 注解类型
+     * @return 是否
+     */
+    public boolean isDeclaredAnnotationPresent(@NonNull Class<? extends Annotation> annotationType) {
+        return Objects.nonNull(getDeclaredAnnotation(annotationType));
     }
 
     /**
@@ -322,7 +336,7 @@ public class ResolvedHierarchicalElement<E extends AnnotatedElement> implements 
      * @return 流
      */
     public Stream<ResolvedHierarchicalElement<E>> hierarchyStream(boolean parallel) {
-        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(hierarchyIterator(), 0), false);
+        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(hierarchyIterator(), 0), parallel);
     }
 
     /**
@@ -438,11 +452,33 @@ public class ResolvedHierarchicalElement<E extends AnnotatedElement> implements 
         public @NonNull Collection<? extends AnnotatedElement> resolve(AnnotatedElement element) {
             element = WrappedAnnotatedElement.getRoot(element);
             if (element instanceof Method method) {
-                return ReflectUtils.getDeclaredSuperClassWithInterface(method.getDeclaringClass()).stream()
-                    .map(ReflectUtils::getDeclaredMethods)
-                    .flatMap(Arrays::stream)
-                    .filter(m -> ReflectUtils.isOverrideableFrom(method, m))
-                    .toList();
+                Set<Class<?>> accessed = new HashSet<>();
+                Deque<Class<?>> typeQueue = new LinkedList<>(ReflectUtils.getDeclaredSuperClassWithInterface(method.getDeclaringClass()));
+                List<Method> recentParents = new ArrayList<>();
+
+                // 由于方法可能重写非直接父类或接口，因此直接的上级节点需要通过递归找到。
+                // 比如当存在 interface a -> interface b -> class c 的继承关系时，c 中的方法可能来自 interface a
+                // 但是，当存在较为复杂的继承树，且相同的方法在不同的上级类中重复出现时，
+                // 就需要对每一个分支进行独立的搜索，直到找到首个匹配的方法为止
+                while (!typeQueue.isEmpty()) {
+                    Class<?> type = typeQueue.removeFirst();
+                    accessed.add(type);
+
+                    // 检查类中是否有可重写的方法，若找到则结束当前分支的搜索
+                    List<Method> methods = Stream.of(ReflectUtils.getDeclaredMethods(type))
+                        .filter(m -> ReflectUtils.isOverrideableFrom(method, m))
+                        .toList();
+                    if (CollectionUtils.isNotEmpty(methods)) {
+                        recentParents.addAll(methods);
+                        continue;
+                    }
+
+                    Set<Class<?>> declaredSuperClassWithInterface = ReflectUtils.getDeclaredSuperClassWithInterface(type);
+                    declaredSuperClassWithInterface.remove(Object.class);
+                    declaredSuperClassWithInterface.removeAll(accessed);
+                    CollectionUtils.addAll(typeQueue, declaredSuperClassWithInterface);
+                }
+                return recentParents;
             }
             throw new Ioc4jException("element must be a method: [{}]", element);
         }

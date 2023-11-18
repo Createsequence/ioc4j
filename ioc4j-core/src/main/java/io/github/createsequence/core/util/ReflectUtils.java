@@ -13,7 +13,19 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -437,6 +449,20 @@ public class ReflectUtils {
      * @param consumer operation for each type
      */
     public static void traverseTypeHierarchy(Class<?> beanType, boolean includeRoot, Consumer<Class<?>> consumer) {
+        traverseTypeHierarchyWhile(beanType, includeRoot, t -> {
+            consumer.accept(t);
+            return true;
+        });
+    }
+
+    /**
+     * Traverse type hierarchy until encountering the first mismatched type.
+     *
+     * @param beanType bean type
+     * @param includeRoot whether include root type
+     * @param consumer operation for each type
+     */
+    public static void traverseTypeHierarchyWhile(Class<?> beanType, boolean includeRoot, Predicate<Class<?>> consumer) {
         Set<Class<?>> accessed = new HashSet<>();
         Deque<Class<?>> typeQueue = new LinkedList<>();
         typeQueue.add(beanType);
@@ -445,7 +471,9 @@ public class ReflectUtils {
             accessed.add(type);
             // do something for current type
             if (includeRoot || type != beanType) {
-                consumer.accept(type);
+                if (consumer.test(type)) {
+                    return;
+                }
             }
             // then find superclass and interfaces
             Set<Class<?>> declaredSuperClassWithInterface = getDeclaredSuperClassWithInterface(type);

@@ -6,7 +6,6 @@ import io.github.createsequence.core.util.ArrayUtils;
 import io.github.createsequence.core.util.CollectionUtils;
 import io.github.createsequence.core.util.ReflectUtils;
 import io.github.createsequence.core.util.Streamable;
-import lombok.Getter;
 import lombok.ToString;
 import lombok.experimental.Delegate;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -16,24 +15,10 @@ import java.lang.annotation.Annotation;
 import java.lang.annotation.Repeatable;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.Spliterators;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 /**
  * <p>{@link HierarchicalAnnotatedElement}的通用实现，
@@ -79,40 +64,17 @@ import java.util.stream.StreamSupport;
  * @see ResolvedAnnotation
  */
 @ToString(onlyExplicitlyIncluded = true)
-public class ResolvedHierarchicalElement<E extends AnnotatedElement> implements AnnotatedElement, Streamable<ResolvedAnnotations> {
+public class ResolvedHierarchicalElement<E extends AnnotatedElement>
+    extends AbstractHierarchicalElement<E, ResolvedHierarchicalElement<E>> implements AnnotatedElement, Streamable<ResolvedAnnotations> {
 
     // TODO 更换为 WeakConcurrentHashMap
-    private static final Map<AnnotatedElement, ResolvedHierarchicalElement<? extends AnnotatedElement>> RESOLVED_ELEMENT_CACHES = new ConcurrentHashMap<>();
-    private static final NoHierarchyElementDiscoverer NO_HIERARCHY_ELEMENT = new NoHierarchyElementDiscoverer();
-    private static final OverrideableMethodsDiscoverer OVERRIDEABLE_METHODS = new OverrideableMethodsDiscoverer();
-    private static final SuperclassAndInterfacesDiscoverer SUPERCLASS_AND_INTERFACES = new SuperclassAndInterfacesDiscoverer();
-    private static final MetaAnnotationTypesDiscoverer META_ANNOTATION_TYPES = new MetaAnnotationTypesDiscoverer();
-
-    /**
-     * 被包装的{@link AnnotatedElement}
-     */
-    @ToString.Include
-    @Getter
-    @NonNull
-    private final E source;
-
-    /**
-     * 上级元素查找器
-     */
-    private final ParentElementDiscoverer parentElementDiscoverer;
+    private static final Map<AnnotatedElement, ResolvedHierarchicalElement<AnnotatedElement>> RESOLVED_ELEMENT_CACHES = new ConcurrentHashMap<>();
 
     /**
      * 在元素上直接存在的注解
      */
     @Delegate(types = Iterable.class)
     private final List<ResolvedAnnotations> resolvedAnnotations;
-
-    /**
-     * <p>上级元素缓存，在调用{@link #getParents}时触发加载。<br />
-     * 令每一个结点都仅缓存其直接上级节点，从而实现整个层级结构中的所有节点的懒加载，
-     * 这在基于{@link ResolvedAnnotation}实现构建树结构时，能避免过多的查找和解析过程。
-     */
-    private volatile Collection<ResolvedHierarchicalElement<E>> parents;
 
     /**
      * 从元素中构建一个{@link ResolvedHierarchicalElement}实例。
@@ -130,12 +92,12 @@ public class ResolvedHierarchicalElement<E extends AnnotatedElement> implements 
      */
     @SuppressWarnings("unchecked")
     public static <E extends AnnotatedElement> ResolvedHierarchicalElement<E> from(E element) {
-        element = (element instanceof ResolvedHierarchicalElement<?> rhe) ? (E) rhe.getSource() : element;
+        element = (element instanceof ResolvedHierarchicalElement<?> rhe) ? (E) rhe.getRoot() : element;
         return (ResolvedHierarchicalElement<E>) RESOLVED_ELEMENT_CACHES.computeIfAbsent(element, ele -> switch (ele) {
-            case Class<?> type && type.isAnnotation() -> new ResolvedHierarchicalElement<>(type, META_ANNOTATION_TYPES);
-            case Class<?> type -> new ResolvedHierarchicalElement<>(type, SUPERCLASS_AND_INTERFACES);
-            case Method method -> new ResolvedHierarchicalElement<>(method, OVERRIDEABLE_METHODS);
-            default -> new ResolvedHierarchicalElement<>(ele, NO_HIERARCHY_ELEMENT);
+            case Class<?> type && type.isAnnotation() -> new ResolvedHierarchicalElement<>(type, MetaAnnotationTypesDiscoverer.INSTANCE);
+            case Class<?> type -> new ResolvedHierarchicalElement<>(type, SuperclassAndInterfacesDiscoverer.INSTANCE);
+            case Method method -> new ResolvedHierarchicalElement<>(method, OverrideableMethodsDiscoverer.INSTANCE);
+            default -> new ResolvedHierarchicalElement<>(ele, NoHierarchyElementDiscoverer.INSTANCE);
         });
     }
 
@@ -145,7 +107,8 @@ public class ResolvedHierarchicalElement<E extends AnnotatedElement> implements 
      * @param element 待包装的{@link AnnotatedElement}
      * @param parentElementDiscoverer  上级元素查找器
      */
-    public static <E extends AnnotatedElement> ResolvedHierarchicalElement<E> create(E element, ParentElementDiscoverer parentElementDiscoverer) {
+    public static <E extends AnnotatedElement> ResolvedHierarchicalElement<E> create(
+        E element, ParentElementDiscoverer<E> parentElementDiscoverer) {
         return new ResolvedHierarchicalElement<>(element, parentElementDiscoverer);
     }
 
@@ -156,13 +119,30 @@ public class ResolvedHierarchicalElement<E extends AnnotatedElement> implements 
         RESOLVED_ELEMENT_CACHES.clear();
     }
 
-
-    ResolvedHierarchicalElement(@NonNull E source, @NonNull ParentElementDiscoverer parentElementDiscoverer) {
-        this.source = source;
-        this.parentElementDiscoverer = parentElementDiscoverer;
+    /**
+     * 创建一个{@link ResolvedHierarchicalElement}实例
+     *
+     * @param element 待包装的{@link AnnotatedElement}
+     * @param parentElementDiscoverer  上级元素查找器
+     */
+    ResolvedHierarchicalElement(@NonNull E source, @NonNull ParentElementDiscoverer<? super E> parentElementDiscoverer) {
+        super(source, parentElementDiscoverer);
         this.resolvedAnnotations = Arrays.stream(source.getDeclaredAnnotations())
             .map(ResolvedAnnotations::from)
             .toList();
+    }
+
+    /**
+     * 创建一个{@link ResolvedHierarchicalElement}实例
+     *
+     * @param source 待封装的{@link AnnotatedElement}
+     * @return {@link ResolvedHierarchicalElement}实例
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    protected ResolvedHierarchicalElement<E> createElement(E source) {
+        return (ResolvedHierarchicalElement<E>)RESOLVED_ELEMENT_CACHES.computeIfAbsent(
+            source, ele -> new ResolvedHierarchicalElement(ele, parentElementDiscoverer)
+        );
     }
 
     // region ===== 查找注解 =====
@@ -178,7 +158,7 @@ public class ResolvedHierarchicalElement<E extends AnnotatedElement> implements 
     @Nullable
     public <A extends Annotation> A getAnnotation(@NonNull Class<A> annotationType) {
         return hierarchyStream()
-            .map(parent -> parent.getDeclaredAnnotation(annotationType))
+            .map(ele -> ele.getDeclaredAnnotation(annotationType))
             .filter(Objects::nonNull)
             .findFirst()
             .orElse(null);
@@ -193,7 +173,7 @@ public class ResolvedHierarchicalElement<E extends AnnotatedElement> implements 
     @Override
     public boolean isAnnotationPresent(@NonNull Class<? extends Annotation> annotationType) {
         return hierarchyStream(true)
-            .map(parent -> parent.getDeclaredAnnotation(annotationType))
+            .map(ele -> ele.getDeclaredAnnotation(annotationType))
             .anyMatch(Objects::nonNull);
     }
 
@@ -219,7 +199,7 @@ public class ResolvedHierarchicalElement<E extends AnnotatedElement> implements 
     @Override
     public <A extends Annotation> A[] getAnnotationsByType(Class<A> annotationType) {
         return hierarchyStream(true)
-            .map(parent -> parent.getDeclaredAnnotationsByType(annotationType))
+            .map(ele -> ele.getDeclaredAnnotationsByType(annotationType))
             .filter(ArrayUtils::isNotEmpty)
             .flatMap(Arrays::stream)
             .toArray(len -> ArrayUtils.newInstance(annotationType, len));
@@ -292,136 +272,14 @@ public class ResolvedHierarchicalElement<E extends AnnotatedElement> implements 
 
     // endregion
 
-    // region ===== 访问层级结构 =====
-
-    /**
-     * 创建一个{@link ResolvedHierarchicalElement}实例
-     *
-     * @param source 待封装的{@link AnnotatedElement}
-     * @param parentElementDiscoverer 上级节点查找器
-     * @return {@link ResolvedHierarchicalElement}实例
-     */
-    @SuppressWarnings("unchecked")
-    protected ResolvedHierarchicalElement<E> createElement(AnnotatedElement source, ParentElementDiscoverer parentElementDiscoverer) {
-        return (ResolvedHierarchicalElement<E>) RESOLVED_ELEMENT_CACHES.computeIfAbsent(
-            source, ele -> new ResolvedHierarchicalElement<>(ele, parentElementDiscoverer)
-        );
-    }
-
-    /**
-     * 获取父级别元素
-     *
-     * @return 父级别元素
-     */
-    @NonNull
-    public Collection<ResolvedHierarchicalElement<E>> getParents() {
-        if (parents == null) {
-            synchronized (this) {
-                if (parents == null) {
-                    var ps = parentElementDiscoverer.resolve(source).stream()
-                        .map(e -> createElement(e, parentElementDiscoverer))
-                        .toList();
-                    parents = CollectionUtils.isNotEmpty(ps) ? ps : Collections.emptyList();
-                }
-            }
-        }
-        return parents;
-    }
-
-
-    /**
-     * 获取包括当前元素在内，层级结构中的所有元素组成的流
-     *
-     * @param parallel 是否并行流，全量搜索注解时可使用并行流加速
-     * @return 流
-     */
-    public Stream<ResolvedHierarchicalElement<E>> hierarchyStream(boolean parallel) {
-        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(hierarchyIterator(), 0), parallel);
-    }
-
-    /**
-     * 获取包括当前元素在内，层级结构中的所有元素组成的串行流
-     *
-     * @return 流
-     */
-    public Stream<ResolvedHierarchicalElement<E>> hierarchyStream() {
-        return hierarchyStream(false);
-    }
-
-    /**
-     * 获取包括当前元素在内，层级结构中的所有元素
-     *
-     * @return 流
-     */
-    public List<ResolvedHierarchicalElement<E>> hierarchies() {
-        return hierarchyStream(false).toList();
-    }
-
-    /**
-     * 获取层级结构迭代器，用于按广度优先迭代包括当前元素在内，层级结构中所有元素
-     *
-     * @return 迭代器实例
-     * @see HierarchicalAnnotatedElement.HierarchicalAnnotatedElementIterator
-     */
-    private Iterator<ResolvedHierarchicalElement<E>> hierarchyIterator() {
-        return new IteratorImpl<>(this);
-    }
-
-    /**
-     * 内部迭代器，用于按广度优先迭代包括当前元素在内，层级结构中的所有元素
-     *
-     * @author huangchengxing
-     */
-    static class IteratorImpl<E extends AnnotatedElement> implements Iterator<ResolvedHierarchicalElement<E>> {
-        private final Set<E> accessed = new HashSet<>();
-        private final Deque<ResolvedHierarchicalElement<E>> queue = new LinkedList<>();
-        IteratorImpl(ResolvedHierarchicalElement<E> root) {
-            queue.add(root);
-        }
-        @Override
-        public boolean hasNext() {
-            return !queue.isEmpty();
-        }
-        @Override
-        public ResolvedHierarchicalElement<E> next() {
-            ResolvedHierarchicalElement<E> m = queue.removeFirst();
-            accessed.add(m.getSource());
-            for (ResolvedHierarchicalElement<E> rhe : m.getParents()) {
-                if (!accessed.contains(rhe.getSource())) {
-                    queue.add(rhe);
-                }
-            }
-            return m;
-        }
-    }
-
-    // endregion
-
-    // region ===== 查找上级元素 =====
-
-    /**
-     * 上级节点查找器
-     *
-     * @author huangchengxing
-     */
-    public interface ParentElementDiscoverer {
-
-        /**
-         * 获取上级元素
-         *
-         * @param element 元素
-         * @return 上级元素
-         */
-        @NonNull
-        Collection<? extends AnnotatedElement> resolve(AnnotatedElement element);
-    }
-
     /**
      * 不查找任何上级元素，默认返回空集合
      */
-    static class NoHierarchyElementDiscoverer implements ParentElementDiscoverer {
+    private static class NoHierarchyElementDiscoverer implements ParentElementDiscoverer<AnnotatedElement> {
+        static final NoHierarchyElementDiscoverer INSTANCE = new NoHierarchyElementDiscoverer();
+        @NonNull
         @Override
-        public @NonNull Collection<? extends AnnotatedElement> resolve(AnnotatedElement element) {
+        public Collection<? extends AnnotatedElement> get(@NonNull AnnotatedElement element) {
             return Collections.emptyList();
         }
     }
@@ -429,15 +287,17 @@ public class ResolvedHierarchicalElement<E extends AnnotatedElement> implements 
     /**
      * 获取指定注解类上的元注解，忽略jdk的原生注解
      */
-    static class MetaAnnotationTypesDiscoverer implements ParentElementDiscoverer {
+    private static class MetaAnnotationTypesDiscoverer implements ParentElementDiscoverer<AnnotatedElement> {
+        static final MetaAnnotationTypesDiscoverer INSTANCE = new MetaAnnotationTypesDiscoverer();
+        @NonNull
         @Override
-        public @NonNull Collection<? extends AnnotatedElement> resolve(AnnotatedElement element) {
+        public Collection<Class<? extends Annotation>> get(@NonNull AnnotatedElement element) {
             element = WrappedAnnotatedElement.getRoot(element);
             if (element instanceof Class<?> type && type.isAnnotation()) {
                 return Arrays.stream(type.getDeclaredAnnotations())
                     .map(Annotation::annotationType)
                     .filter(AnnotationUtils::isNotJdkMetaAnnotation)
-                    .toList();
+                    .collect(Collectors.toList());
             }
             throw new Ioc4jException("element must be a type of annotation: [{}]", element);
         }
@@ -447,9 +307,11 @@ public class ResolvedHierarchicalElement<E extends AnnotatedElement> implements 
      * 获得指定方法声明类的父类与父接口中，能够被重写的方法。<br/>
      * 关于可被重写方法判断标准，参照{@link ReflectUtils#isOverrideableFrom}；
      */
-    static class OverrideableMethodsDiscoverer implements ParentElementDiscoverer {
+    private static class OverrideableMethodsDiscoverer implements ParentElementDiscoverer<AnnotatedElement> {
+        static final OverrideableMethodsDiscoverer INSTANCE = new OverrideableMethodsDiscoverer();
+        @NonNull
         @Override
-        public @NonNull Collection<? extends AnnotatedElement> resolve(AnnotatedElement element) {
+        public Collection<Method> get(@NonNull AnnotatedElement element) {
             element = WrappedAnnotatedElement.getRoot(element);
             if (element instanceof Method method) {
                 Set<Class<?>> accessed = new HashSet<>();
@@ -487,9 +349,11 @@ public class ResolvedHierarchicalElement<E extends AnnotatedElement> implements 
     /**
      * 获取指定类的父类或父接口
      */
-    static class SuperclassAndInterfacesDiscoverer implements ParentElementDiscoverer {
+    private static class SuperclassAndInterfacesDiscoverer implements ParentElementDiscoverer<AnnotatedElement> {
+        static final SuperclassAndInterfacesDiscoverer INSTANCE = new SuperclassAndInterfacesDiscoverer();
+        @NonNull
         @Override
-        public @NonNull Collection<? extends AnnotatedElement> resolve(AnnotatedElement element) {
+        public Collection<Class<?>> get(@NonNull AnnotatedElement element) {
             element = WrappedAnnotatedElement.getRoot(element);
             if (element instanceof Class<?> type) {
                 return ReflectUtils.getDeclaredSuperClassWithInterface(type);
@@ -497,6 +361,4 @@ public class ResolvedHierarchicalElement<E extends AnnotatedElement> implements 
             throw new Ioc4jException("element must be a class: [{}]", element);
         }
     }
-
-    // regend
 }

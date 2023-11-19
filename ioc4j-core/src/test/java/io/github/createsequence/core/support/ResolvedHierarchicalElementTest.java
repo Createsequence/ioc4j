@@ -51,7 +51,7 @@ public class ResolvedHierarchicalElementTest {
         Assert.assertEquals(1, customElement.hierarchies().size());
         Assert.assertArrayEquals(
             new Object[]{ Foo.class },
-            customElement.hierarchyStream().map(ResolvedHierarchicalElement::getSource).toArray()
+            customElement.hierarchyStream().map(ResolvedHierarchicalElement::getRoot).toArray()
         );
 
         // 解析获取类的层级结构
@@ -59,7 +59,7 @@ public class ResolvedHierarchicalElementTest {
         Assert.assertEquals(4, classElement.hierarchies().size());
         Assert.assertArrayEquals(
             new Object[]{ Foo.class, Super.class, Object.class, Interface.class },
-            classElement.hierarchyStream().map(ResolvedHierarchicalElement::getSource).toArray()
+            classElement.hierarchyStream().map(ResolvedHierarchicalElement::getRoot).toArray()
         );
 
         // 解析方法的层级结构
@@ -70,7 +70,7 @@ public class ResolvedHierarchicalElementTest {
         Assert.assertEquals(3, methodElement.hierarchies().size());
         Assert.assertArrayEquals(
             new Object[]{ FooMethod, SuperMethod, interfaceMethod },
-            methodElement.hierarchyStream().map(ResolvedHierarchicalElement::getSource).toArray()
+            methodElement.hierarchyStream().map(ResolvedHierarchicalElement::getRoot).toArray()
         );
 
         // 解析注解的层级结构
@@ -78,7 +78,7 @@ public class ResolvedHierarchicalElementTest {
         Assert.assertEquals(2, annotationTypeElement.hierarchies().size());
         Assert.assertArrayEquals(
             new Object[]{ ChildAnnotation.class, ParentAnnotation.class },
-            annotationTypeElement.hierarchyStream().map(ResolvedHierarchicalElement::getSource).toArray()
+            annotationTypeElement.hierarchyStream().map(ResolvedHierarchicalElement::getRoot).toArray()
         );
 
         // 解析不具备层级结构的注解
@@ -87,7 +87,7 @@ public class ResolvedHierarchicalElementTest {
         Assert.assertEquals(1, otherElement.hierarchies().size());
         Assert.assertArrayEquals(
             new Object[]{ parameter },
-            otherElement.hierarchyStream().map(ResolvedHierarchicalElement::getSource).toArray()
+            otherElement.hierarchyStream().map(ResolvedHierarchicalElement::getRoot).toArray()
         );
     }
 
